@@ -112,18 +112,35 @@ class UsersController extends AppController
     }
 
     public function login()
+{
+    $result = $this->Users->getResult();
+    // If the user is logged in send them away.
+    if ($result->isValid()) {
+        $target = $this->Users->getLoginRedirect() ?? '/home';
+        return $this->redirect($target);
+    }
+    if ($this->request->is('post')) {
+        $this->Flash->error('Invalid username or password');
+    }
+}
+
+   /* public function login()
     {
+        $user = $this->Users->find()->toArray();
+        var_dump($user);exit;
         if($this->request->is('post')) {
-            $user = $this->Auth->identify();
-           // var_dump($user);exit;
-            if($user){
+            $user_input = $this->Auth->identify();
+            $dados = $this->request->getData();
+            if($dados['login'])
+            $this->Auth->setUser('user');
+            if($user = $dados){
                 $this->Auth->setUser($user);
                 return $this->redirect($this->Auth->redirectUrl());
             }else{
                 $this->Flash->error(__('Usuário ou Senha incorreto'));
             }
         }
-    }
+    } */
 
     public function logout() 
     {
