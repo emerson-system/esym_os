@@ -11,6 +11,14 @@ namespace App\Controller\Admin;
  */
 class UsersController extends AppController
 {
+    // Se necessario utilizar
+   /* public function beforeFilter(Event $event)
+    {
+        parent::beforeFilter($event);
+        // Liberar Páginas Publicamente
+        $this->Auth->allow(['index', 'visualizar']);
+    } */
+
     /**
      * Index method
      *
@@ -107,10 +115,18 @@ class UsersController extends AppController
     {
         if($this->request->is('post')) {
             $user = $this->Auth->identify();
+           // var_dump($user);exit;
             if($user){
                 $this->Auth->setUser($user);
                 return $this->redirect($this->Auth->redirectUrl());
+            }else{
+                $this->Flash->error(__('Usuário ou Senha incorreto'));
             }
         }
+    }
+
+    public function logout() 
+    {
+        return $this->redirect($this->Auth->logout());
     }
 }

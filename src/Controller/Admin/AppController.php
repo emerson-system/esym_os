@@ -47,8 +47,12 @@ class AppController extends Controller
             'loginRedirect' => [
                 'controller' => 'users',
                 'action' => 'index'
+            ],
+            'logoutRedirect' => [
+                'controller' => 'Users',
+                'action' => 'login'
             ]
-        ]);
+        ]); 
 
         /*
          * Enable the following component for recommended CakePHP form protection settings.
