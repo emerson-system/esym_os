@@ -41,14 +41,20 @@ class AppController extends Controller
     {
         parent::initialize();
 
+        $this->loadComponent('Authentication.Authentication');
+
         $this->loadComponent('RequestHandler');
         $this->loadComponent('Flash');
         $this->loadComponent('Auth', [
             'loginRedirect' => [
-                'controller' => 'users',
+                'controller' => 'welcome',
                 'action' => 'index'
+            ],
+            'logoutRedirect' => [
+                'controller' => 'Users',
+                'action' => 'login'
             ]
-        ]);
+        ]); 
 
         /*
          * Enable the following component for recommended CakePHP form protection settings.

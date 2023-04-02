@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Controller\Admin;
+namespace App\Controller;
 
 /**
  * Users Controller
@@ -18,6 +18,13 @@ class UsersController extends AppController
         // Liberar Páginas Publicamente
         $this->Auth->allow(['index', 'visualizar']);
     } */
+
+    public function beforeFilter(\Cake\Event\EventInterface $event)
+    {
+        parent::beforeFilter($event);
+
+        $this->Authentication->allowUnauthenticated(['login']);
+    }
 
     /**
      * Index method
@@ -110,28 +117,32 @@ class UsersController extends AppController
 
         return $this->redirect(['action' => 'index']);
     }
-
+    
     public function login()
-{
-    $result = $this->Users->getResult();
-    // If the user is logged in send them away.
-    if ($result->isValid()) {
-        $target = $this->Users->getLoginRedirect() ?? '/home';
-        return $this->redirect($target);
-    }
-    if ($this->request->is('post')) {
-        $this->Flash->error('Invalid username or password');
-    }
-}
-
-   /* public function login()
+    {
+        $result = $this->Authentication->getResult();
+        // Se o usuário estiver logado, mande-o embora.
+        if ($result->isValid()) {
+            var_dump($result);exit;
+            $target = $this->Authentication->getLoginRedirect() ?? '/home';
+            return $this->redirect($target);
+        }
+        /*
+        if ($this->request->is('post')) {
+            
+            $this->Flash->error('Email de usuário ou senha Inválidos');
+            
+        } */
+    }  
+    /*
+    public function login()
     {
         $user = $this->Users->find()->toArray();
-        var_dump($user);exit;
+        //var_dump($user);exit;
         if($this->request->is('post')) {
             $user_input = $this->Auth->identify();
             $dados = $this->request->getData();
-            if($dados['login'])
+            if($dados['email'])
             $this->Auth->setUser('user');
             if($user = $dados){
                 $this->Auth->setUser($user);
@@ -142,8 +153,9 @@ class UsersController extends AppController
         }
     } */
 
-    public function logout() 
+    public function logout()
     {
-        return $this->redirect($this->Auth->logout());
+        $this->Authentication->logout();
+        return $this->redirect(['controller' => 'Users', 'action' => 'login']);
     }
 }

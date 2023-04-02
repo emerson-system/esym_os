@@ -60,14 +60,15 @@ return static function (RouteBuilder $routes) {
 
         $builder->fallbacks();
     });
-
+    /*
     $routes->prefix('admin', function (RouteBuilder $builder) {
-        //$builder->connect('/', ['controller' => 'Pages', 'action' => 'display', 'home']);
+        $builder->connect('/', ['controller' => 'Pages', 'action' => 'display', 'home']);
 
-        //$builder->connect('/pages/*', 'Pages::display');
+        $builder->connect('/pages/*', 'Pages::display');
 
         $builder->fallbacks();
     });
+    */
 
     /*
      * If you need a different set of middleware or none at all,
