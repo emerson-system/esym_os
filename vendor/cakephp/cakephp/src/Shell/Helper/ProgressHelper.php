@@ -36,17 +36,6 @@ use RuntimeException;
 class ProgressHelper extends Helper
 {
     /**
-     * Default value for progress bar total value.
-     * Percent completion is derived from progress/total
-     */
-    protected const DEFAULT_TOTAL = 100;
-
-    /**
-     * Default value for progress bar width
-     */
-    protected const DEFAULT_WIDTH = 80;
-
-    /**
      * The current progress.
      *
      * @var float|int
@@ -58,14 +47,14 @@ class ProgressHelper extends Helper
      *
      * @var int
      */
-    protected $_total = self::DEFAULT_TOTAL;
+    protected $_total = 0;
 
     /**
      * The width of the bar.
      *
      * @var int
      */
-    protected $_width = self::DEFAULT_WIDTH;
+    protected $_width = 0;
 
     /**
      * Output a progress bar.
@@ -113,7 +102,7 @@ class ProgressHelper extends Helper
      */
     public function init(array $args = [])
     {
-        $args += ['total' => self::DEFAULT_TOTAL, 'width' => self::DEFAULT_WIDTH];
+        $args += ['total' => 100, 'width' => 80];
         $this->_progress = 0;
         $this->_width = $args['width'];
         $this->_total = $args['total'];

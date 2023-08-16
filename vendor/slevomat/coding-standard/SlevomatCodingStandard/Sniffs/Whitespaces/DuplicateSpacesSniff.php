@@ -141,14 +141,14 @@ class DuplicateSpacesSniff implements Sniff
 		$fix = false;
 		foreach ($matches[0] as [$match, $offset]) {
 			$firstPointerOnLine = TokenHelper::findFirstNonWhitespaceOnLine($phpcsFile, $whitespacePointer - 1);
-			$indentation = IndentationHelper::getIndentation($phpcsFile, $firstPointerOnLine);
-			$indentationWithoutTabs = str_replace(
+			$indendation = IndentationHelper::getIndentation($phpcsFile, $firstPointerOnLine);
+			$indendationWithoutTabs = str_replace(
 				IndentationHelper::TAB_INDENT,
 				$tabWidth === 0 ? IndentationHelper::SPACES_INDENT : str_repeat(' ', $tabWidth),
-				$indentation
+				$indendation
 			);
 
-			$position = $tokens[$whitespacePointer]['column'] + $offset - strlen($indentation) + strlen($indentationWithoutTabs);
+			$position = $tokens[$whitespacePointer]['column'] + $offset - strlen($indendation) + strlen($indendationWithoutTabs);
 
 			$fixable = $phpcsFile->addFixableError(
 				sprintf('Duplicate spaces at position %d.', $position),

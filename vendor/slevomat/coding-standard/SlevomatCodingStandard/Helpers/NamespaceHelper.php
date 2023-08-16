@@ -31,7 +31,7 @@ class NamespaceHelper
 	public const NAMESPACE_SEPARATOR = '\\';
 
 	/**
-	 * @return list<int>
+	 * @return int[]
 	 */
 	public static function getAllNamespacesPointers(File $phpcsFile): array
 	{
@@ -69,7 +69,7 @@ class NamespaceHelper
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	public static function getNameParts(string $name): array
 	{

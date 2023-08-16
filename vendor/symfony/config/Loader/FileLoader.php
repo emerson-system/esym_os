@@ -39,8 +39,6 @@ abstract class FileLoader extends Loader
 
     /**
      * Sets the current directory.
-     *
-     * @return void
      */
     public function setCurrentDir(string $dir)
     {
@@ -63,8 +61,6 @@ abstract class FileLoader extends Loader
      * @param bool                 $ignoreErrors   Whether to ignore import errors or not
      * @param string|null          $sourceResource The original resource importing the new resource
      * @param string|string[]|null $exclude        Glob patterns to exclude from the import
-     *
-     * @return mixed
      *
      * @throws LoaderLoadException
      * @throws FileLoaderImportCircularReferenceException
@@ -101,7 +97,7 @@ abstract class FileLoader extends Loader
     /**
      * @internal
      */
-    protected function glob(string $pattern, bool $recursive, array|GlobResource &$resource = null, bool $ignoreErrors = false, bool $forExclusion = false, array $excluded = []): iterable
+    protected function glob(string $pattern, bool $recursive, array|GlobResource &$resource = null, bool $ignoreErrors = false, bool $forExclusion = false, array $excluded = [])
     {
         if (\strlen($pattern) === $i = strcspn($pattern, '*?{[')) {
             $prefix = $pattern;
@@ -133,7 +129,7 @@ abstract class FileLoader extends Loader
         yield from $resource;
     }
 
-    private function doImport(mixed $resource, string $type = null, bool $ignoreErrors = false, string $sourceResource = null): mixed
+    private function doImport(mixed $resource, string $type = null, bool $ignoreErrors = false, string $sourceResource = null)
     {
         try {
             $loader = $this->resolve($resource, $type);

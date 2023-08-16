@@ -236,11 +236,8 @@ class PluginManager
                 continue;
             }
 
-            $installPath = $this->getInstallPath($autoloadPackage, $globalRepo && $globalRepo->hasPackage($autoloadPackage));
-            if ($installPath === null) {
-                continue;
-            }
-            $autoloads[] = [$autoloadPackage, $installPath];
+            $downloadPath = $this->getInstallPath($autoloadPackage, $globalRepo && $globalRepo->hasPackage($autoloadPackage));
+            $autoloads[] = [$autoloadPackage, $downloadPath];
         }
 
         $map = $generator->parseAutoloads($autoloads, $rootPackage);
@@ -267,7 +264,7 @@ class PluginManager
                 if ($separatorPos) {
                     $className = substr($class, $separatorPos + 1);
                 }
-                $code = Preg::replace('{^((?:(?:final|readonly)\s+)*(?:\s*))class\s+('.preg_quote($className).')}mi', '$1class $2_composer_tmp'.self::$classCounter, $code, 1);
+                $code = Preg::replace('{^((?:final\s+)?(?:\s*))class\s+('.preg_quote($className).')}mi', '$1class $2_composer_tmp'.self::$classCounter, $code, 1);
                 $code = strtr($code, [
                     '__FILE__' => var_export($path, true),
                     '__DIR__' => var_export(dirname($path), true),
@@ -527,9 +524,9 @@ class PluginManager
      *
      * @param bool             $global  Whether this is a global package
      *
-     * @return string|null Install path
+     * @return string Install path
      */
-    private function getInstallPath(PackageInterface $package, bool $global = false): ?string
+    private function getInstallPath(PackageInterface $package, bool $global = false): string
     {
         if (!$global) {
             return $this->composer->getInstallationManager()->getInstallPath($package);

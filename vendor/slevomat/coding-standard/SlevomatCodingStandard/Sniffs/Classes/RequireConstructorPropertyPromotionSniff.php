@@ -5,7 +5,7 @@ namespace SlevomatCodingStandard\Sniffs\Classes;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
-use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
+use SlevomatCodingStandard\Helpers\Annotation\VariableAnnotation;
 use SlevomatCodingStandard\Helpers\AnnotationHelper;
 use SlevomatCodingStandard\Helpers\DocCommentHelper;
 use SlevomatCodingStandard\Helpers\FixerHelper;
@@ -158,7 +158,7 @@ class RequireConstructorPropertyPromotionSniff implements Sniff
 					continue;
 				}
 
-				if ($this->isParameterModifiedBeforeAssignment($phpcsFile, $functionPointer, $parameterName, $assignmentPointer)) {
+				if ($this->isParameterModifiedBeforeAssigment($phpcsFile, $functionPointer, $parameterName, $assignmentPointer)) {
 					continue;
 				}
 
@@ -280,7 +280,7 @@ class RequireConstructorPropertyPromotionSniff implements Sniff
 	}
 
 	/**
-	 * @return list<int>
+	 * @return int[]
 	 */
 	private function getParameterPointers(File $phpcsFile, int $functionPointer): array
 	{
@@ -294,7 +294,7 @@ class RequireConstructorPropertyPromotionSniff implements Sniff
 	}
 
 	/**
-	 * @return list<int>
+	 * @return int[]
 	 */
 	private function getPropertyPointers(File $phpcsFile, int $classPointer): array
 	{
@@ -319,14 +319,16 @@ class RequireConstructorPropertyPromotionSniff implements Sniff
 			return true;
 		}
 
-		foreach (AnnotationHelper::getAnnotations($phpcsFile, $propertyPointer) as $annotation) {
-			$annotationValue = $annotation->getValue();
-			if (!$annotationValue instanceof VarTagValueNode) {
+		foreach (AnnotationHelper::getAnnotations($phpcsFile, $propertyPointer) as $annotationType => $annotations) {
+			if (!in_array($annotationType, ['@var', '@phpstan-var', '@psalm-var'], true)) {
 				return true;
 			}
 
-			if ($annotationValue->description !== '') {
-				return true;
+			/** @var VariableAnnotation $annotation */
+			foreach ($annotations as $annotation) {
+				if ($annotation->hasDescription()) {
+					return true;
+				}
 			}
 		}
 
@@ -359,16 +361,16 @@ class RequireConstructorPropertyPromotionSniff implements Sniff
 		return $parameterTypeHint->getTypeHint() === $propertyTypeHint->getTypeHint();
 	}
 
-	private function isParameterModifiedBeforeAssignment(
+	private function isParameterModifiedBeforeAssigment(
 		File $phpcsFile,
 		int $functionPointer,
 		string $parameterName,
-		int $assignmentPointer
+		int $assigmentPointer
 	): bool
 	{
 		$tokens = $phpcsFile->getTokens();
 
-		for ($i = $assignmentPointer - 1; $i > $tokens[$functionPointer]['scope_opener']; $i--) {
+		for ($i = $assigmentPointer - 1; $i > $tokens[$functionPointer]['scope_opener']; $i--) {
 			if ($tokens[$i]['code'] !== T_VARIABLE) {
 				continue;
 			}

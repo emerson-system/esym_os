@@ -156,11 +156,20 @@ class EarlyExitSniff implements Sniff
 				IndentationHelper::getIndentation($phpcsFile, $ifPointer)
 			);
 
-			$ifContent = sprintf('if %s {%s}%s%s', $negativeIfCondition, $elseCode, $phpcsFile->eolChar, $afterIfCode);
-
 			$phpcsFile->fixer->beginChangeset();
 
-			FixerHelper::change($phpcsFile, $ifPointer, $tokens[$elsePointer]['scope_closer'], $ifContent);
+			FixerHelper::removeBetweenIncluding($phpcsFile, $ifPointer, $tokens[$elsePointer]['scope_closer']);
+
+			$phpcsFile->fixer->addContent(
+				$ifPointer,
+				sprintf(
+					'if %s {%s}%s%s',
+					$negativeIfCondition,
+					$elseCode,
+					$phpcsFile->eolChar,
+					$afterIfCode
+				)
+			);
 
 			$phpcsFile->fixer->endChangeset();
 
@@ -182,13 +191,19 @@ class EarlyExitSniff implements Sniff
 
 		$phpcsFile->fixer->beginChangeset();
 
-		$previousConditionContent = sprintf('%s%s', $phpcsFile->eolChar, $afterIfCode);
-
-		FixerHelper::change(
-			$phpcsFile,
+		$phpcsFile->fixer->replaceToken(
 			$tokens[$previousConditionPointer]['scope_closer'] + 1,
-			$tokens[$elsePointer]['scope_closer'],
-			$previousConditionContent
+			sprintf(
+				'%s%s',
+				$phpcsFile->eolChar,
+				$afterIfCode
+			)
+		);
+
+		FixerHelper::removeBetweenIncluding(
+			$phpcsFile,
+			$tokens[$previousConditionPointer]['scope_closer'] + 2,
+			$tokens[$elsePointer]['scope_closer']
 		);
 
 		$phpcsFile->fixer->endChangeset();
@@ -342,21 +357,24 @@ class EarlyExitSniff implements Sniff
 		);
 		$afterIfCode = IndentationHelper::fixIndentation($phpcsFile, $ifCodePointers, $ifIndentation);
 
-		$ifContent = sprintf(
-			'if %s {%s%s%s;%s%s}%s%s',
-			$negativeIfCondition,
-			$phpcsFile->eolChar,
-			$earlyExitCodeIndentation,
-			$earlyExitCode,
-			$phpcsFile->eolChar,
-			$ifIndentation,
-			$phpcsFile->eolChar,
-			$afterIfCode
-		);
-
 		$phpcsFile->fixer->beginChangeset();
 
-		FixerHelper::change($phpcsFile, $ifPointer, $tokens[$ifPointer]['scope_closer'], $ifContent);
+		$phpcsFile->fixer->replaceToken(
+			$ifPointer,
+			sprintf(
+				'if %s {%s%s%s;%s%s}%s%s',
+				$negativeIfCondition,
+				$phpcsFile->eolChar,
+				$earlyExitCodeIndentation,
+				$earlyExitCode,
+				$phpcsFile->eolChar,
+				$ifIndentation,
+				$phpcsFile->eolChar,
+				$afterIfCode
+			)
+		);
+
+		FixerHelper::removeBetweenIncluding($phpcsFile, $ifPointer + 1, $tokens[$ifPointer]['scope_closer']);
 
 		$phpcsFile->fixer->endChangeset();
 	}
@@ -368,7 +386,7 @@ class EarlyExitSniff implements Sniff
 	}
 
 	/**
-	 * @return list<int>
+	 * @return int[]
 	 */
 	private function getScopeCodePointers(File $phpcsFile, int $scopePointer): array
 	{
@@ -422,7 +440,7 @@ class EarlyExitSniff implements Sniff
 	}
 
 	/**
-	 * @return list<int>
+	 * @return int[]
 	 */
 	private function getAllConditionsPointers(File $phpcsFile, int $conditionPointer): array
 	{

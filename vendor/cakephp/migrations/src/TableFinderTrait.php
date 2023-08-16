@@ -156,10 +156,6 @@ trait TableFinderTrait
     {
         $tables = [];
         $className = str_replace('Table.php', '', $className);
-        if (!$className) {
-            return $tables;
-        }
-
         if ($pluginName !== null) {
             $className = $pluginName . '.' . $className;
         }

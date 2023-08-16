@@ -18,7 +18,6 @@ use Composer\Pcre\Preg;
 use Composer\Repository\InstalledRepository;
 use Composer\Repository\LockArrayRepository;
 use Composer\Repository\PlatformRepository;
-use Composer\Repository\RootPackageRepository;
 use Composer\Util\ProcessExecutor;
 use Composer\Package\Dumper\ArrayDumper;
 use Composer\Package\Loader\ArrayLoader;
@@ -474,11 +473,7 @@ class Locker
             return null;
         }
 
-        $path = $this->installationManager->getInstallPath($package);
-        if ($path === null) {
-            return null;
-        }
-        $path = realpath($path);
+        $path = realpath($this->installationManager->getInstallPath($package));
         $sourceType = $package->getSourceType();
         $datetime = null;
 
@@ -515,10 +510,9 @@ class Locker
         if ($includeDev === true) {
             $sets[] = ['repo' => $this->getLockedRepository(true), 'method' => 'getDevRequires', 'description' => 'Required (in require-dev)'];
         }
-        $rootRepo = new RootPackageRepository(clone $package);
 
         foreach ($sets as $set) {
-            $installedRepo = new InstalledRepository([$set['repo'], $rootRepo]);
+            $installedRepo = new InstalledRepository([$set['repo']]);
 
             foreach (call_user_func([$package, $set['method']]) as $link) {
                 if (PlatformRepository::isPlatformPackage($link->getTarget())) {
@@ -529,21 +523,9 @@ class Locker
                 }
                 if ($installedRepo->findPackagesWithReplacersAndProviders($link->getTarget(), $link->getConstraint()) === []) {
                     $results = $installedRepo->findPackagesWithReplacersAndProviders($link->getTarget());
-
                     if ($results !== []) {
                         $provider = reset($results);
-                        $description = $provider->getPrettyVersion();
-                        if ($provider->getName() !== $link->getTarget()) {
-                            foreach (['getReplaces' => 'replaced as %s by %s', 'getProvides' => 'provided as %s by %s'] as $method => $text) {
-                                foreach (call_user_func([$provider, $method]) as $providerLink) {
-                                    if ($providerLink->getTarget() === $link->getTarget()) {
-                                        $description = sprintf($text, $providerLink->getPrettyConstraint(), $provider->getPrettyName().' '.$provider->getPrettyVersion());
-                                        break 2;
-                                    }
-                                }
-                            }
-                        }
-                        $missingRequirementInfo[] = '- ' . $set['description'].' package "' . $link->getTarget() . '" is in the lock file as "'.$description.'" but that does not satisfy your constraint "'.$link->getPrettyConstraint().'".';
+                        $missingRequirementInfo[] = '- ' . $set['description'].' package "' . $link->getTarget() . '" is in the lock file as "'.$provider->getPrettyVersion().'" but that does not satisfy your constraint "'.$link->getPrettyConstraint().'".';
                     } else {
                         $missingRequirementInfo[] = '- ' . $set['description'].' package "' . $link->getTarget() . '" is not present in the lock file.';
                     }

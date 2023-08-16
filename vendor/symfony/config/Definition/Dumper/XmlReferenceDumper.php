@@ -31,17 +31,11 @@ class XmlReferenceDumper
 {
     private ?string $reference = null;
 
-    /**
-     * @return string
-     */
     public function dump(ConfigurationInterface $configuration, string $namespace = null)
     {
         return $this->dumpNode($configuration->getConfigTreeBuilder()->buildTree(), $namespace);
     }
 
-    /**
-     * @return string
-     */
     public function dumpNode(NodeInterface $node, string $namespace = null)
     {
         $this->reference = '';
@@ -52,14 +46,16 @@ class XmlReferenceDumper
         return $ref;
     }
 
-    private function writeNode(NodeInterface $node, int $depth = 0, bool $root = false, string $namespace = null): void
+    private function writeNode(NodeInterface $node, int $depth = 0, bool $root = false, string $namespace = null)
     {
         $rootName = ($root ? 'config' : $node->getName());
         $rootNamespace = ($namespace ?: ($root ? 'http://example.org/schema/dic/'.$node->getName() : null));
 
         // xml remapping
         if ($node->getParent()) {
-            $remapping = array_filter($node->getParent()->getXmlRemappings(), fn (array $mapping) => $rootName === $mapping[1]);
+            $remapping = array_filter($node->getParent()->getXmlRemappings(), function (array $mapping) use ($rootName) {
+                return $rootName === $mapping[1];
+            });
 
             if (\count($remapping)) {
                 [$singular] = current($remapping);
@@ -113,7 +109,7 @@ class XmlReferenceDumper
                             FloatNode::class,
                             IntegerNode::class => 'numeric value',
                             BooleanNode::class => 'true|false',
-                            EnumNode::class => $prototype->getPermissibleValues('|'),
+                            EnumNode::class => implode('|', array_map('json_encode', $prototype->getValues())),
                             default => 'value',
                         };
                     }
@@ -155,7 +151,7 @@ class XmlReferenceDumper
                 }
 
                 if ($child instanceof EnumNode) {
-                    $comments[] = 'One of '.$child->getPermissibleValues('; ');
+                    $comments[] = 'One of '.implode('; ', array_map('json_encode', $child->getValues()));
                 }
 
                 if (\count($comments)) {
@@ -253,7 +249,7 @@ class XmlReferenceDumper
     /**
      * Outputs a single config reference line.
      */
-    private function writeLine(string $text, int $indent = 0): void
+    private function writeLine(string $text, int $indent = 0)
     {
         $indent = \strlen($text) + $indent;
         $format = '%'.$indent.'s';

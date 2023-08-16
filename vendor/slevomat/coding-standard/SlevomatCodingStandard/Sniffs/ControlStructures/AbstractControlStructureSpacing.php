@@ -81,16 +81,16 @@ abstract class AbstractControlStructureSpacing implements Sniff
 	protected const KEYWORD_YIELD = 'yield';
 	protected const KEYWORD_YIELD_FROM = 'yield_from';
 
-	/** @var array<(string|int)>|null */
+	/** @var (string|int)[]|null */
 	private $tokensToCheck;
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	abstract protected function getSupportedKeywords(): array;
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	abstract protected function getKeywordsToCheck(): array;
 
@@ -217,9 +217,7 @@ abstract class AbstractControlStructureSpacing implements Sniff
 			$phpcsFile->fixer->replaceToken($pointerBefore, '<?php');
 		}
 
-		if ($endOfLineBeforePointer !== null) {
-			FixerHelper::removeBetweenIncluding($phpcsFile, $pointerBefore + 1, $endOfLineBeforePointer);
-		}
+		FixerHelper::removeBetweenIncluding($phpcsFile, $pointerBefore + 1, $endOfLineBeforePointer);
 
 		$linesToAdd = $hasCommentWithLineEndBefore ? $requiredLinesCountBefore - 1 : $requiredLinesCountBefore;
 		for ($i = 0; $i <= $linesToAdd; $i++) {

@@ -92,13 +92,13 @@ class Migrator
 
             $options[$i] = $migrationSet;
             $connectionName = $migrationSet['connection'];
-            if (!isset($connectionsList[$connectionName])) {
-                $connectionsList[$connectionName] = ['name' => $connectionName, 'skip' => $skip];
+            if (!in_array($connectionName, $connectionsList)) {
+                $connectionsList[] = ['name' => $connectionName, 'skip' => $skip];
             }
 
             $migrations = new Migrations();
-            if (!isset($connectionsToDrop[$connectionName]) && $this->shouldDropTables($migrations, $migrationSet)) {
-                $connectionsToDrop[$connectionName] = ['name' => $connectionName, 'skip' => $skip];
+            if (!in_array($connectionName, $connectionsToDrop) && $this->shouldDropTables($migrations, $migrationSet)) {
+                $connectionsToDrop[] = ['name' => $connectionName, 'skip' => $skip];
             }
         }
 
@@ -110,21 +110,9 @@ class Migrator
         foreach ($options as $migrationSet) {
             $migrations = new Migrations();
 
-            try {
-                if (!$migrations->migrate($migrationSet)) {
-                    throw new RuntimeException(
-                        "Unable to migrate fixtures for `{$migrationSet['connection']}`."
-                    );
-                }
-            } catch (\Exception $e) {
+            if (!$migrations->migrate($migrationSet)) {
                 throw new RuntimeException(
-                    'Could not apply migrations for ' . json_encode($migrationSet) . "\n\n" .
-                    "Migrations failed to apply with message:\n\n" .
-                    $e->getMessage() . "\n\n" .
-                    'If you are using the `skip` option and running multiple sets of migrations ' .
-                    'on the same connection try calling `truncate()` before `runMany()` to avoid this.',
-                    0,
-                    $e
+                    "Unable to migrate fixtures for `{$migrationSet['connection']}`."
                 );
             }
         }

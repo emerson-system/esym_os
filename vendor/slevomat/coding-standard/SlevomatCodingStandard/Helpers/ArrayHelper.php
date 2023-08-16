@@ -3,13 +3,17 @@
 namespace SlevomatCodingStandard\Helpers;
 
 use PHP_CodeSniffer\Files\File;
-use function array_key_exists;
 use function arsort;
+use function end;
 use function in_array;
 use function key;
+use function min;
+use function strlen;
 use function strnatcasecmp;
+use function strpos;
 use const T_COMMA;
 use const T_OPEN_SHORT_ARRAY;
+use const T_WHITESPACE;
 
 /**
  * @internal
@@ -17,75 +21,95 @@ use const T_OPEN_SHORT_ARRAY;
 class ArrayHelper
 {
 
+	/** @var array<int, array<string, array<int, int|string>|int|string>> */
+	protected static $tokens;
+
 	/**
-	 * @return list<ArrayKeyValue>
+	 * @return ArrayKeyValue[]
 	 */
-	public static function parse(File $phpcsFile, int $arrayPointer): array
+	public static function parse(File $phpcsFile, int $pointer): array
 	{
-		$tokens = $phpcsFile->getTokens();
-
-		$arrayToken = $tokens[$arrayPointer];
-		[$arrayOpenerPointer, $arrayCloserPointer] = self::openClosePointers($arrayToken);
-
+		self::$tokens = $phpcsFile->getTokens();
+		$token = self::$tokens[$pointer];
+		[$pointerOpener, $pointerCloser] = self::openClosePointers($token);
+		$tokenOpener = self::$tokens[$pointerOpener];
+		$lineIndents = [''];
 		$keyValues = [];
-
-		$firstPointerOnNextLine = TokenHelper::findFirstTokenOnNextLine($phpcsFile, $arrayOpenerPointer + 1);
-		$firstEffectivePointer = TokenHelper::findNextEffective($phpcsFile, $arrayOpenerPointer + 1);
-
-		$arrayKeyValueStartPointer = $firstPointerOnNextLine !== null && $firstPointerOnNextLine < $firstEffectivePointer
-			? $firstPointerOnNextLine
-			: $firstEffectivePointer;
-		$arrayKeyValueEndPointer = $arrayKeyValueStartPointer;
-
-		$indentation = $tokens[$arrayOpenerPointer]['line'] < $tokens[$firstEffectivePointer]['line']
-			? IndentationHelper::getIndentation($phpcsFile, $firstEffectivePointer)
-			: '';
-
-		for ($i = $arrayKeyValueStartPointer; $i < $arrayCloserPointer; $i++) {
-			$token = $tokens[$i];
-
-			if (in_array($token['code'], TokenHelper::$arrayTokenCodes, true)) {
-				$i = self::openClosePointers($token)[1];
-				continue;
-			}
-
-			if (array_key_exists('scope_closer', $token) && $token['scope_closer'] > $i) {
-				$i = $token['scope_closer'] - 1;
-				continue;
-			}
-
-			if (array_key_exists('parenthesis_closer', $token) && $token['parenthesis_closer'] > $i) {
-				$i = $token['parenthesis_closer'] - 1;
-				continue;
-			}
-
-			$nextEffectivePointer = TokenHelper::findNextEffective($phpcsFile, $i + 1);
-
-			if ($nextEffectivePointer === $arrayCloserPointer) {
-				$arrayKeyValueEndPointer = self::getValueEndPointer($phpcsFile, $i, $arrayCloserPointer, $indentation);
+		$skipUntilPointer = null;
+		$tokenEnd = null;
+		$pointer = $pointerOpener + 1;
+		for (; $pointer < $pointerCloser; $pointer++) {
+			$token = self::$tokens[$pointer];
+			if ($token['line'] > $tokenOpener['line'] || in_array($token['code'], TokenHelper::$ineffectiveTokenCodes, true) === false) {
 				break;
 			}
+		}
+		$pointerStart = $pointer;
 
-			if ($token['code'] !== T_COMMA || !ScopeHelper::isInSameScope($phpcsFile, $arrayOpenerPointer, $i)) {
-				$arrayKeyValueEndPointer = $i;
+		for (; $pointer < $pointerCloser; $pointer++) {
+			if ($pointer < $skipUntilPointer) {
 				continue;
 			}
 
-			$arrayKeyValueEndPointer = self::getValueEndPointer($phpcsFile, $i, $arrayCloserPointer, $indentation);
+			$token = self::$tokens[$pointer];
 
-			$keyValues[] = new ArrayKeyValue($phpcsFile, $arrayKeyValueStartPointer, $arrayKeyValueEndPointer);
+			if (in_array($token['code'], TokenHelper::$arrayTokenCodes, true)) {
+				$pointerCloserWalk = self::openClosePointers($token)[1];
+				$skipUntilPointer = $pointerCloserWalk;
+				continue;
+			}
+			if (isset($token['scope_closer']) && $token['scope_closer'] > $pointer) {
+				$skipUntilPointer = $token['scope_closer'];
+				continue;
+			}
+			if (isset($token['parenthesis_closer'])) {
+				$skipUntilPointer = $token['parenthesis_closer'];
+				continue;
+			}
+			$nextEffective = in_array($token['code'], TokenHelper::$ineffectiveTokenCodes, true)
+				? TokenHelper::findNextEffective($phpcsFile, $pointer)
+				: TokenHelper::findNextEffective($phpcsFile, $pointer + 1);
+			if (
+				isset($lineIndents[$token['line']]) === false
+				&& in_array($token['code'], TokenHelper::$ineffectiveTokenCodes, true) === false
+			) {
+				$firstPointerOnLine = TokenHelper::findFirstTokenOnLine($phpcsFile, $pointer);
+				$firstEffective = TokenHelper::findNextEffective($phpcsFile, $firstPointerOnLine);
+				$lineIndents[$token['line']] = TokenHelper::getContent($phpcsFile, $firstPointerOnLine, $firstEffective - 1);
+			}
 
-			$arrayKeyValueStartPointer = $arrayKeyValueEndPointer + 1;
-			$i = $arrayKeyValueEndPointer;
+			$startNewKeyValue = $tokenEnd !== null
+				? self::parseTestStartKeyVal($pointer, $tokenEnd, end($lineIndents))
+				: false;
+			if ($startNewKeyValue) {
+				if ($nextEffective === $pointerCloser && in_array($token['code'], TokenHelper::$ineffectiveTokenCodes, true)) {
+					// there are no more key/values
+					$firstPointerOnLine = TokenHelper::findFirstTokenOnLine($phpcsFile, $pointer);
+					if ($pointer === $firstPointerOnLine) {
+						// end last key/value on the prev token
+						$pointer--;
+					}
+					break;
+				}
+				$startNewKeyValue = false;
+				$tokenEnd = null;
+				$keyValues[] = new ArrayKeyValue($phpcsFile, $pointerStart, $pointer - 1);
+				$pointerStart = $pointer;
+			}
+			if ($token['code'] === T_COMMA || $tokenEnd !== null) {
+				$tokenEnd = $token;
+			}
 		}
 
-		$keyValues[] = new ArrayKeyValue($phpcsFile, $arrayKeyValueStartPointer, $arrayKeyValueEndPointer);
+		$pointer = min($pointer, $pointerCloser - 1);
+		$keyValues[] = new ArrayKeyValue($phpcsFile, $pointerStart, $pointer);
 
+		self::$tokens = [];
 		return $keyValues;
 	}
 
 	/**
-	 * @param list<ArrayKeyValue> $keyValues
+	 * @param ArrayKeyValue[] $keyValues
 	 */
 	public static function getIndentation(array $keyValues): ?string
 	{
@@ -104,7 +128,7 @@ class ArrayHelper
 	}
 
 	/**
-	 * @param list<ArrayKeyValue> $keyValues
+	 * @param ArrayKeyValue[] $keyValues
 	 */
 	public static function isKeyed(array $keyValues): bool
 	{
@@ -117,12 +141,12 @@ class ArrayHelper
 	}
 
 	/**
-	 * @param list<ArrayKeyValue> $keyValues
+	 * @param ArrayKeyValue[] $keyValues
 	 */
 	public static function isKeyedAll(array $keyValues): bool
 	{
 		foreach ($keyValues as $keyValue) {
-			if (!$keyValue->isUnpacking() && $keyValue->getKey() === null) {
+			if ($keyValue->getKey() === null) {
 				return false;
 			}
 		}
@@ -140,48 +164,32 @@ class ArrayHelper
 		$tokenOpener = $tokens[$pointerOpener];
 		$tokenCloser = $tokens[$pointerCloser];
 
-		return $tokenOpener['line'] !== $tokenCloser['line'];
-	}
-
-	/**
-	 * Test if effective tokens between open & closing tokens
-	 */
-	public static function isNotEmpty(File $phpcsFile, int $pointer): bool
-	{
-		$tokens = $phpcsFile->getTokens();
-		$token = $tokens[$pointer];
-		[$pointerOpener, $pointerCloser] = self::openClosePointers($token);
-
 		/** @var int $pointerPreviousToClose */
 		$pointerPreviousToClose = TokenHelper::findPreviousEffective($phpcsFile, $pointerCloser - 1);
 
-		return $pointerPreviousToClose !== $pointerOpener;
+		return $tokenOpener['line'] !== $tokenCloser['line']
+			&& $pointerPreviousToClose !== $pointerOpener;
 	}
 
 	/**
-	 * @param list<ArrayKeyValue> $keyValues
+	 * @param ArrayKeyValue[] $keyValues
 	 */
 	public static function isSortedByKey(array $keyValues): bool
 	{
-		$previousKey = '';
+		$prev = '';
 		foreach ($keyValues as $keyValue) {
-			if ($keyValue->isUnpacking()) {
-				continue;
-			}
-
-			if (strnatcasecmp($previousKey, $keyValue->getKey()) === 1) {
+			$cmp = strnatcasecmp((string) $prev, (string) $keyValue->getKey());
+			if ($cmp === 1) {
 				return false;
 			}
-
-			$previousKey = $keyValue->getKey();
+			$prev = $keyValue->getKey();
 		}
-
 		return true;
 	}
 
 	/**
 	 * @param array<string, array<int, int|string>|int|string> $token
-	 * @return array{0: int, 1: int}
+	 * @return int[]
 	 */
 	public static function openClosePointers(array $token): array
 	{
@@ -195,38 +203,45 @@ class ArrayHelper
 		return [(int) $pointerOpener, (int) $pointerCloser];
 	}
 
-	private static function getValueEndPointer(File $phpcsFile, int $endPointer, int $arrayCloserPointer, string $indentation): int
+	/**
+	 * Test whether we should begin collecting the next key/value tokens
+	 *
+	 * @param array<string, array<int, int|string>|int|string> $tokenPrev
+	 */
+	private static function parseTestStartKeyVal(int $pointer, array $tokenPrev, string $lastIndent): bool
 	{
-		$tokens = $phpcsFile->getTokens();
+		$token = self::$tokens[$pointer];
 
-		$nextEffectivePointer = TokenHelper::findNextEffective($phpcsFile, $endPointer + 1, $arrayCloserPointer + 1);
+		// token['column'] cannot be relied on if tabs are being used
+		//   this simply checks if indent contains tab and is the same as the prev indent plus additional
+		$testTabIndent = static function ($indent, $indentPrev) {
+			return strpos($indent, "\t") !== false
+				&& strpos($indent, $indentPrev) === 0
+				&& strlen($indent) > strlen($indentPrev);
+		};
 
-		if ($tokens[$nextEffectivePointer]['line'] === $tokens[$endPointer]['line']) {
-			return $nextEffectivePointer - 1;
+		$startNew = true;
+
+		if (
+			in_array($token['code'], TokenHelper::$ineffectiveTokenCodes, true)
+			&& $token['line'] === $tokenPrev['line']
+		) {
+			// we're whitespace or comment after the value...
+			$startNew = false;
+		} elseif (
+			$token['code'] === T_WHITESPACE
+			&& in_array($tokenPrev['code'], TokenHelper::$inlineCommentTokenCodes, true)
+			&& in_array(self::$tokens[$pointer + 1]['code'], TokenHelper::$inlineCommentTokenCodes, true)
+			&& (self::$tokens[$pointer + 1]['column'] >= $tokenPrev['column']
+				|| $testTabIndent($token['content'], $lastIndent)
+			)
+		) {
+			// 'key' => 'value' // tokenPrev is this comment
+			//                  // we're in the preceeding whitespace
+			$startNew = false;
 		}
 
-		for ($i = $endPointer + 1; $i < $nextEffectivePointer; $i++) {
-			if ($tokens[$i]['line'] === $tokens[$endPointer]['line']) {
-				$endPointer = $i;
-				continue;
-			}
-
-			$nextNonWhitespacePointer = TokenHelper::findNextNonWhitespace($phpcsFile, $i);
-
-			if (!in_array($tokens[$nextNonWhitespacePointer]['code'], TokenHelper::$inlineCommentTokenCodes, true)) {
-				break;
-			}
-
-			if ($indentation === IndentationHelper::getIndentation($phpcsFile, $nextNonWhitespacePointer)) {
-				$endPointer = $i - 1;
-				break;
-			}
-
-			$i = TokenHelper::findLastTokenOnLine($phpcsFile, $i);
-			$endPointer = $i;
-		}
-
-		return $endPointer;
+		return $startNew;
 	}
 
 }

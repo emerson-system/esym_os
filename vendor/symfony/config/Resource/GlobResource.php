@@ -97,48 +97,28 @@ class GlobResource implements \IteratorAggregate, SelfCheckingResourceInterface
 
     public function getIterator(): \Traversable
     {
-        if ((!$this->recursive && '' === $this->pattern) || !file_exists($this->prefix)) {
+        if (!file_exists($this->prefix) || (!$this->recursive && '' === $this->pattern)) {
             return;
         }
-
-        if (is_file($prefix = str_replace('\\', '/', $this->prefix))) {
-            $prefix = \dirname($prefix);
-            $pattern = basename($prefix).$this->pattern;
-        } else {
-            $pattern = $this->pattern;
-        }
-
-        if (class_exists(Finder::class)) {
-            $regex = Glob::toRegex($pattern);
-            if ($this->recursive) {
-                $regex = substr_replace($regex, '(/|$)', -2, 1);
-            }
-        } else {
-            $regex = null;
-        }
-
-        $prefixLen = \strlen($prefix);
+        $prefix = str_replace('\\', '/', $this->prefix);
         $paths = null;
 
-        if ('' === $this->pattern && is_file($this->prefix)) {
-            $paths = [$this->prefix => null];
-        } elseif (!str_starts_with($this->prefix, 'phar://') && (null !== $regex || !str_contains($this->pattern, '/**/'))) {
-            if (!str_contains($this->pattern, '/**/') && ($this->globBrace || !str_contains($this->pattern, '{'))) {
-                $paths = array_fill_keys(glob($this->prefix.$this->pattern, \GLOB_NOSORT | $this->globBrace), null);
+        if ('' === $this->pattern && is_file($prefix)) {
+            $paths = [$this->prefix];
+        } elseif (!str_starts_with($this->prefix, 'phar://') && !str_contains($this->pattern, '/**/')) {
+            if ($this->globBrace || !str_contains($this->pattern, '{')) {
+                $paths = glob($this->prefix.$this->pattern, \GLOB_NOSORT | $this->globBrace);
             } elseif (!str_contains($this->pattern, '\\') || !preg_match('/\\\\[,{}]/', $this->pattern)) {
-                $paths = [];
                 foreach ($this->expandGlob($this->pattern) as $p) {
-                    if (false !== $i = strpos($p, '/**/')) {
-                        $p = substr_replace($p, '/*', $i);
-                    }
-                    $paths += array_fill_keys(glob($this->prefix.$p, \GLOB_NOSORT), false !== $i ? $regex : null);
+                    $paths[] = glob($this->prefix.$p, \GLOB_NOSORT);
                 }
+                $paths = array_merge(...$paths);
             }
         }
 
         if (null !== $paths) {
-            uksort($paths, 'strnatcmp');
-            foreach ($paths as $path => $regex) {
+            natsort($paths);
+            foreach ($paths as $path) {
                 if ($this->excludedPrefixes) {
                     $normalizedPath = str_replace('\\', '/', $path);
                     do {
@@ -148,25 +128,25 @@ class GlobResource implements \IteratorAggregate, SelfCheckingResourceInterface
                     } while ($prefix !== $dirPath && $dirPath !== $normalizedPath = \dirname($dirPath));
                 }
 
-                if ((null === $regex || preg_match($regex, substr(str_replace('\\', '/', $path), $prefixLen))) && is_file($path)) {
+                if (is_file($path)) {
                     yield $path => new \SplFileInfo($path);
                 }
                 if (!is_dir($path)) {
                     continue;
                 }
-                if ($this->forExclusion && (null === $regex || preg_match($regex, substr(str_replace('\\', '/', $path), $prefixLen)))) {
+                if ($this->forExclusion) {
                     yield $path => new \SplFileInfo($path);
                     continue;
                 }
-                if (!($this->recursive || null !== $regex) || isset($this->excludedPrefixes[str_replace('\\', '/', $path)])) {
+                if (!$this->recursive || isset($this->excludedPrefixes[str_replace('\\', '/', $path)])) {
                     continue;
                 }
                 $files = iterator_to_array(new \RecursiveIteratorIterator(
                     new \RecursiveCallbackFilterIterator(
                         new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS),
-                        fn (\SplFileInfo $file, $path) => !isset($this->excludedPrefixes[$path = str_replace('\\', '/', $path)])
-                            && (null === $regex || preg_match($regex, substr($path, $prefixLen)) || $file->isDir())
-                            && '.' !== $file->getBasename()[0]
+                        function (\SplFileInfo $file, $path) {
+                            return !isset($this->excludedPrefixes[str_replace('\\', '/', $path)]) && '.' !== $file->getBasename()[0];
+                        }
                     ),
                     \RecursiveIteratorIterator::LEAVES_ONLY
                 ));
@@ -183,8 +163,22 @@ class GlobResource implements \IteratorAggregate, SelfCheckingResourceInterface
         }
 
         if (!class_exists(Finder::class)) {
-            throw new \LogicException('Extended glob patterns cannot be used as the Finder component is not installed. Try running "composer require symfony/finder".');
+            throw new \LogicException(sprintf('Extended glob pattern "%s" cannot be used as the Finder component is not installed.', $this->pattern));
         }
+
+        if (is_file($prefix = $this->prefix)) {
+            $prefix = \dirname($prefix);
+            $pattern = basename($prefix).$this->pattern;
+        } else {
+            $pattern = $this->pattern;
+        }
+
+        $regex = Glob::toRegex($pattern);
+        if ($this->recursive) {
+            $regex = substr_replace($regex, '(/|$)', -2, 1);
+        }
+
+        $prefixLen = \strlen($prefix);
 
         yield from (new Finder())
             ->followLinks()
@@ -208,7 +202,7 @@ class GlobResource implements \IteratorAggregate, SelfCheckingResourceInterface
 
     private function computeHash(): string
     {
-        $hash = hash_init('xxh128');
+        $hash = hash_init('md5');
 
         foreach ($this->getIterator() as $path => $info) {
             hash_update($hash, $path."\n");

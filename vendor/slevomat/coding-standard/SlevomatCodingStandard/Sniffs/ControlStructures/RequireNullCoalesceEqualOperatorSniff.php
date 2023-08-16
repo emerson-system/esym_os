@@ -90,9 +90,8 @@ class RequireNullCoalesceEqualOperatorSniff implements Sniff
 		}
 
 		$phpcsFile->fixer->beginChangeset();
-
-		FixerHelper::change($phpcsFile, $equalPointer, $nullCoalescePointer, '??=');
-
+		$phpcsFile->fixer->replaceToken($equalPointer, '??=');
+		FixerHelper::removeBetweenIncluding($phpcsFile, $equalPointer + 1, $nullCoalescePointer);
 		$phpcsFile->fixer->endChangeset();
 	}
 

@@ -28,8 +28,6 @@ class AuthHelper
     protected $config;
     /** @var array<string, string> Map of origins to message displayed */
     private $displayedOriginAuthentications = [];
-    /** @var array<string, bool> Map of URLs and whether they already retried with authentication from Bitbucket */
-    private $bitbucketRetry = [];
 
     public function __construct(IOInterface $io, Config $config)
     {
@@ -166,12 +164,6 @@ class AuthHelper
                         $this->io->setAuthentication($origin, 'x-token-auth', $accessToken);
                         $askForOAuthToken = false;
                     }
-                } elseif (!isset($this->bitbucketRetry[$url])) {
-                    // when multiple requests fire at the same time, they will all fail and the first one resets the token to be correct above but then the others
-                    // reach the code path and without this fallback they would end up throwing below
-                    // see https://github.com/composer/composer/pull/11464 for more details
-                    $askForOAuthToken = false;
-                    $this->bitbucketRetry[$url] = true;
                 } else {
                     throw new TransportException('Could not authenticate against ' . $origin, 401);
                 }

@@ -4,14 +4,13 @@ namespace SlevomatCodingStandard\Sniffs\Arrays;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
-use SlevomatCodingStandard\Helpers\ArrayHelper;
 use SlevomatCodingStandard\Helpers\SniffSettingsHelper;
 use SlevomatCodingStandard\Helpers\TokenHelper;
-use function in_array;
 use function sprintf;
 use function str_repeat;
 use const T_COMMA;
 use const T_OPEN_PARENTHESIS;
+use const T_OPEN_SHORT_ARRAY;
 use const T_WHITESPACE;
 
 class SingleLineArrayWhitespaceSniff implements Sniff
@@ -34,7 +33,7 @@ class SingleLineArrayWhitespaceSniff implements Sniff
 	 */
 	public function register(): array
 	{
-		return TokenHelper::$arrayTokenCodes;
+		return [T_OPEN_SHORT_ARRAY];
 	}
 
 	/**
@@ -47,29 +46,30 @@ class SingleLineArrayWhitespaceSniff implements Sniff
 
 		$tokens = $phpcsFile->getTokens();
 
-		[$arrayOpenerPointer, $arrayCloserPointer] = ArrayHelper::openClosePointers($tokens[$stackPointer]);
+		$arrayStart = $stackPointer;
+		$arrayEnd = $tokens[$stackPointer]['bracket_closer'];
 
 		// Check only single-line arrays.
-		if ($tokens[$arrayOpenerPointer]['line'] !== $tokens[$arrayCloserPointer]['line']) {
-			return $arrayCloserPointer;
+		if ($tokens[$arrayStart]['line'] !== $tokens[$arrayEnd]['line']) {
+			return $arrayEnd;
 		}
 
-		$pointerContent = TokenHelper::findNextNonWhitespace($phpcsFile, $arrayOpenerPointer + 1, $arrayCloserPointer + 1);
-		if ($pointerContent === $arrayCloserPointer) {
+		$content = TokenHelper::findNextNonWhitespace($phpcsFile, $arrayStart + 1, $arrayEnd + 1);
+		if ($content === $arrayEnd) {
 			// Empty array, but if the brackets aren't together, there's a problem.
 			if ($this->enableEmptyArrayCheck) {
-				$this->checkWhitespaceInEmptyArray($phpcsFile, $arrayOpenerPointer, $arrayCloserPointer);
+				$this->checkWhitespaceInEmptyArray($phpcsFile, $arrayStart, $arrayEnd);
 			}
 
 			// We can return here because there is nothing else to check.
 			// All code below can assume that the array is not empty.
-			return $arrayCloserPointer + 1;
+			return $arrayEnd + 1;
 		}
 
-		$this->checkWhitespaceAfterOpeningBracket($phpcsFile, $arrayOpenerPointer);
-		$this->checkWhitespaceBeforeClosingBracket($phpcsFile, $arrayCloserPointer);
+		$this->checkWhitespaceAfterOpeningBracket($phpcsFile, $arrayStart);
+		$this->checkWhitespaceBeforeClosingBracket($phpcsFile, $arrayEnd);
 
-		for ($i = $arrayOpenerPointer + 1; $i < $arrayCloserPointer; $i++) {
+		for ($i = $arrayStart + 1; $i < $arrayEnd; $i++) {
 			// Skip bracketed statements, like function calls.
 			if ($tokens[$i]['code'] === T_OPEN_PARENTHESIS) {
 				$i = $tokens[$i]['parenthesis_closer'];
@@ -78,8 +78,8 @@ class SingleLineArrayWhitespaceSniff implements Sniff
 			}
 
 			// Skip nested arrays as they will be processed separately
-			if (in_array($tokens[$i]['code'], TokenHelper::$arrayTokenCodes, true)) {
-				$i = ArrayHelper::openClosePointers($tokens[$i])[1];
+			if ($tokens[$i]['code'] === T_OPEN_SHORT_ARRAY) {
+				$i = $tokens[$i]['bracket_closer'];
 
 				continue;
 			}
@@ -89,16 +89,16 @@ class SingleLineArrayWhitespaceSniff implements Sniff
 			}
 
 			// Before checking this comma, make sure we are not at the end of the array.
-			$next = TokenHelper::findNextNonWhitespace($phpcsFile, $i + 1, $arrayCloserPointer);
+			$next = TokenHelper::findNextNonWhitespace($phpcsFile, $i + 1, $arrayEnd);
 			if ($next === null) {
-				return $arrayOpenerPointer + 1;
+				return $arrayStart + 1;
 			}
 
 			$this->checkWhitespaceBeforeComma($phpcsFile, $i);
 			$this->checkWhitespaceAfterComma($phpcsFile, $i);
 		}
 
-		return $arrayOpenerPointer + 1;
+		return $arrayStart + 1;
 	}
 
 	private function checkWhitespaceInEmptyArray(File $phpcsFile, int $arrayStart, int $arrayEnd): void

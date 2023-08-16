@@ -289,12 +289,7 @@ if (!function_exists('deprecationWarning')) {
             $frame = $trace[$stackFrame];
             $frame += ['file' => '[internal]', 'line' => '??'];
 
-            // Assuming we're installed in vendor/cakephp/cakephp/src/Core/functions.php
-            $root = dirname(__DIR__, 5);
-            if (defined('ROOT')) {
-                $root = ROOT;
-            }
-            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($frame['file'], strlen($root) + 1));
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($frame['file'], strlen(ROOT) + 1));
             $patterns = (array)Configure::read('Error.ignoredDeprecationPaths');
             foreach ($patterns as $pattern) {
                 $pattern = str_replace(DIRECTORY_SEPARATOR, '/', $pattern);

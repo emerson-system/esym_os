@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Laminas\Diactoros\ServerRequestFilter;
 
-use function assert;
-use function count;
 use function explode;
 use function inet_pton;
 use function intval;
@@ -45,9 +43,7 @@ final class IPRange
         $subnet = $cidr;
 
         if (str_contains($cidr, '/')) {
-            $parts = explode('/', $cidr, 2);
-            assert(count($parts) >= 2);
-            [$subnet, $mask] = $parts;
+            [$subnet, $mask] = explode('/', $cidr, 2);
             $mask            = (int) $mask;
         }
 
@@ -77,9 +73,7 @@ final class IPRange
         $subnet = $cidr;
 
         if (str_contains($cidr, '/')) {
-            $parts = explode('/', $cidr, 2);
-            assert(count($parts) >= 2);
-            [$subnet, $mask] = $parts;
+            [$subnet, $mask] = explode('/', $cidr, 2);
             $mask            = (int) $mask;
         }
 

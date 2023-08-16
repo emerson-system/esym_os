@@ -30,9 +30,6 @@ class FileLocator implements FileLocatorInterface
         $this->paths = (array) $paths;
     }
 
-    /**
-     * @return string|array
-     */
     public function locate(string $name, string $currentPath = null, bool $first = true)
     {
         if ('' === $name) {

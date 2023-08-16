@@ -10,7 +10,6 @@ use function strpos;
 use function trim;
 use const T_COMMA;
 use const T_DOUBLE_ARROW;
-use const T_ELLIPSIS;
 use const T_WHITESPACE;
 
 /**
@@ -36,9 +35,6 @@ class ArrayKeyValue
 
 	/** @var ?int */
 	private $pointerComma = null;
-
-	/** @var bool */
-	private $unpacking = false;
 
 	public function __construct(File $phpcsFile, int $pointerStart, int $pointerEnd)
 	{
@@ -106,51 +102,30 @@ class ArrayKeyValue
 		return $this->pointerStart;
 	}
 
-	public function isUnpacking(): bool
-	{
-		return $this->unpacking;
-	}
-
 	private function addValues(File $phpcsFile): void
 	{
 		$key = '';
 		$tokens = $phpcsFile->getTokens();
 		$firstNonWhitespace = null;
-
-		for ($i = $this->pointerStart; $i <= $this->pointerEnd; $i++) {
-			$token = $tokens[$i];
-
+		$pointerCloser = null;
+		for ($pointer = $this->pointerStart; $pointer <= $this->pointerEnd; $pointer++) {
+			if ($pointer < $pointerCloser) {
+				continue;
+			}
+			$token = $tokens[$pointer];
 			if (in_array($token['code'], TokenHelper::$arrayTokenCodes, true)) {
-				$i = ArrayHelper::openClosePointers($token)[1];
-				continue;
-			}
-
-			if ($token['code'] === T_DOUBLE_ARROW) {
-				$this->pointerArrow = $i;
-				continue;
-			}
-
-			if ($token['code'] === T_COMMA) {
-				$this->pointerComma = $i;
-				continue;
-
-			}
-
-			if ($token['code'] === T_ELLIPSIS) {
-				$this->unpacking = true;
-				continue;
-			}
-
-			if ($this->pointerArrow !== null) {
-				continue;
-			}
-
-			if ($firstNonWhitespace === null && $token['code'] !== T_WHITESPACE) {
-				$firstNonWhitespace = $i;
-			}
-
-			if (in_array($token['code'], TokenHelper::$inlineCommentTokenCodes, true) === false) {
-				$key .= $token['content'];
+				$pointerCloser = ArrayHelper::openClosePointers($token)[1];
+			} elseif ($token['code'] === T_DOUBLE_ARROW) {
+				$this->pointerArrow = $pointer;
+			} elseif ($token['code'] === T_COMMA) {
+				$this->pointerComma = $pointer;
+			} elseif ($this->pointerArrow === null) {
+				if ($firstNonWhitespace === null && $token['code'] !== T_WHITESPACE) {
+					$firstNonWhitespace = $pointer;
+				}
+				if (in_array($token['code'], TokenHelper::$inlineCommentTokenCodes, true) === false) {
+					$key .= $token['content'];
+				}
 			}
 		}
 		$haveIndent = $firstNonWhitespace !== null && TokenHelper::findFirstNonWhitespaceOnLine(

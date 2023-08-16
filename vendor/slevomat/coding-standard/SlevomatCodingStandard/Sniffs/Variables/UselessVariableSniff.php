@@ -103,7 +103,7 @@ class UselessVariableSniff implements Sniff
 			return;
 		}
 
-		if (!$this->isAssignmentToVariable($phpcsFile, $previousVariablePointer)) {
+		if (!$this->isAssigmentToVariable($phpcsFile, $previousVariablePointer)) {
 			return;
 		}
 
@@ -119,7 +119,7 @@ class UselessVariableSniff implements Sniff
 			return;
 		}
 
-		if ($this->hasAnotherAssignmentBefore($phpcsFile, $previousVariablePointer, $variableName)) {
+		if ($this->hasAnotherAssigmentBefore($phpcsFile, $previousVariablePointer, $variableName)) {
 			return;
 		}
 
@@ -149,10 +149,10 @@ class UselessVariableSniff implements Sniff
 			return;
 		}
 
-		/** @var int $assignmentPointer */
-		$assignmentPointer = TokenHelper::findNextEffective($phpcsFile, $previousVariablePointer + 1);
+		/** @var int $assigmentPointer */
+		$assigmentPointer = TokenHelper::findNextEffective($phpcsFile, $previousVariablePointer + 1);
 
-		$assignmentFixerMapping = [
+		$assigmentFixerMapping = [
 			T_PLUS_EQUAL => '+',
 			T_MINUS_EQUAL => '-',
 			T_MUL_EQUAL => '*',
@@ -171,11 +171,12 @@ class UselessVariableSniff implements Sniff
 
 		$phpcsFile->fixer->beginChangeset();
 
-		if ($tokens[$assignmentPointer]['code'] === T_EQUAL) {
-			FixerHelper::change($phpcsFile, $previousVariablePointer, $assignmentPointer, 'return');
+		if ($tokens[$assigmentPointer]['code'] === T_EQUAL) {
+			FixerHelper::removeBetweenIncluding($phpcsFile, $previousVariablePointer, $assigmentPointer - 1);
+			$phpcsFile->fixer->replaceToken($assigmentPointer, 'return');
 		} else {
 			$phpcsFile->fixer->addContentBefore($previousVariablePointer, 'return ');
-			$phpcsFile->fixer->replaceToken($assignmentPointer, $assignmentFixerMapping[$tokens[$assignmentPointer]['code']]);
+			$phpcsFile->fixer->replaceToken($assigmentPointer, $assigmentFixerMapping[$tokens[$assigmentPointer]['code']]);
 		}
 
 		FixerHelper::removeBetweenIncluding($phpcsFile, $previousVariableSemicolonPointer + 1, $returnSemicolonPointer);
@@ -256,10 +257,10 @@ class UselessVariableSniff implements Sniff
 		return $parenthesisOpenerPointer < $pointer && $pointer < $tokens[$parenthesisOpenerPointer]['parenthesis_closer'];
 	}
 
-	private function isAssignmentToVariable(File $phpcsFile, int $pointer): bool
+	private function isAssigmentToVariable(File $phpcsFile, int $pointer): bool
 	{
-		$assignmentPointer = TokenHelper::findNextEffective($phpcsFile, $pointer + 1);
-		return in_array($phpcsFile->getTokens()[$assignmentPointer]['code'], [
+		$assigmentPointer = TokenHelper::findNextEffective($phpcsFile, $pointer + 1);
+		return in_array($phpcsFile->getTokens()[$assigmentPointer]['code'], [
 			T_EQUAL,
 			T_PLUS_EQUAL,
 			T_MINUS_EQUAL,
@@ -352,14 +353,14 @@ class UselessVariableSniff implements Sniff
 		) !== 0;
 	}
 
-	private function hasAnotherAssignmentBefore(File $phpcsFile, int $variablePointer, string $variableName): bool
+	private function hasAnotherAssigmentBefore(File $phpcsFile, int $variablePointer, string $variableName): bool
 	{
 		$previousVariablePointer = $this->findPreviousVariablePointer($phpcsFile, $variablePointer, $variableName);
 		if ($previousVariablePointer === null) {
 			return false;
 		}
 
-		if (!$this->isAssignmentToVariable($phpcsFile, $previousVariablePointer)) {
+		if (!$this->isAssigmentToVariable($phpcsFile, $previousVariablePointer)) {
 			return false;
 		}
 

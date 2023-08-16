@@ -1,6 +1,6 @@
 # CakePHP ruleset
 
-The CakePHP standard contains 135 sniffs
+The CakePHP standard contains 136 sniffs
 
 CakePHP (19 sniffs)
 -------------------
@@ -52,9 +52,10 @@ Generic (25 sniffs)
 - Generic.WhiteSpace.IncrementDecrementSpacing
 - Generic.WhiteSpace.ScopeIndent
 
-PEAR (1 sniff)
+PEAR (2 sniffs)
 ---------------
 - PEAR.Functions.ValidDefaultValue
+- PEAR.NamingConventions.ValidFunctionName
 
 PSR1 (3 sniffs)
 ---------------
@@ -62,12 +63,11 @@ PSR1 (3 sniffs)
 - PSR1.Files.SideEffects
 - PSR1.Methods.CamelCapsMethodName
 
-PSR12 (17 sniffs)
+PSR12 (16 sniffs)
 -----------------
 - PSR12.Classes.AnonClassDeclaration
 - PSR12.Classes.ClassInstantiation
 - PSR12.Classes.ClosingBrace
-- PSR12.Classes.OpeningBraceSpace
 - PSR12.ControlStructures.BooleanOperatorPlacement
 - PSR12.ControlStructures.ControlStructureSpacing
 - PSR12.Files.DeclareStatement
@@ -129,7 +129,7 @@ SlevomatCodingStandard (32 sniffs)
 - SlevomatCodingStandard.TypeHints.ReturnTypeHintSpacing
 - SlevomatCodingStandard.Variables.DuplicateAssignmentToVariable
 
-Squiz (28 sniffs)
+Squiz (29 sniffs)
 -----------------
 - Squiz.Arrays.ArrayBracketSpacing
 - Squiz.Classes.ClassFileName
@@ -144,6 +144,7 @@ Squiz (28 sniffs)
 - Squiz.Functions.FunctionDeclarationArgumentSpacing
 - Squiz.Functions.LowercaseFunctionKeywords
 - Squiz.Functions.MultiLineFunctionDeclaration
+- Squiz.NamingConventions.ValidFunctionName
 - Squiz.Operators.ValidLogicalOperators
 - Squiz.PHP.DisallowSizeFunctionsInLoops
 - Squiz.PHP.Eval

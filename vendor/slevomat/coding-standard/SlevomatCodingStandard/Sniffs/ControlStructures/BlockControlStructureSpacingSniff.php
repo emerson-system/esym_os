@@ -25,7 +25,7 @@ class BlockControlStructureSpacingSniff extends AbstractControlStructureSpacing
 	/** @var int */
 	public $linesCountAfterLast = 0;
 
-	/** @var list<string> */
+	/** @var string[] */
 	public $controlStructures = [];
 
 	/**
@@ -47,7 +47,7 @@ class BlockControlStructureSpacingSniff extends AbstractControlStructureSpacing
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	protected function getSupportedKeywords(): array
 	{
@@ -65,7 +65,7 @@ class BlockControlStructureSpacingSniff extends AbstractControlStructureSpacing
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	protected function getKeywordsToCheck(): array
 	{

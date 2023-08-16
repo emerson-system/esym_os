@@ -4,13 +4,14 @@ namespace SlevomatCodingStandard\Sniffs\Arrays;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
-use SlevomatCodingStandard\Helpers\ArrayHelper;
 use SlevomatCodingStandard\Helpers\SniffSettingsHelper;
 use SlevomatCodingStandard\Helpers\TokenHelper;
 use function in_array;
+use const T_ARRAY;
 use const T_COMMA;
 use const T_END_HEREDOC;
 use const T_END_NOWDOC;
+use const T_OPEN_SHORT_ARRAY;
 
 class TrailingArrayCommaSniff implements Sniff
 {
@@ -25,7 +26,10 @@ class TrailingArrayCommaSniff implements Sniff
 	 */
 	public function register(): array
 	{
-		return TokenHelper::$arrayTokenCodes;
+		return [
+			T_OPEN_SHORT_ARRAY,
+			T_ARRAY,
+		];
 	}
 
 	/**
@@ -37,21 +41,29 @@ class TrailingArrayCommaSniff implements Sniff
 		$this->enableAfterHeredoc = SniffSettingsHelper::isEnabledByPhpVersion($this->enableAfterHeredoc, 70300);
 
 		$tokens = $phpcsFile->getTokens();
+		$token = $tokens[$stackPointer];
+		$isShortArray = $token['code'] === T_OPEN_SHORT_ARRAY;
+		$pointerOpener = $isShortArray
+			? $token['bracket_opener']
+			: $token['parenthesis_opener'];
+		$pointerCloser = $isShortArray
+			? $token['bracket_closer']
+			: $token['parenthesis_closer'];
+		$tokenOpener = $tokens[$pointerOpener];
+		$tokenCloser = $tokens[$pointerCloser];
 
-		[$arrayOpenerPointer, $arrayCloserPointer] = ArrayHelper::openClosePointers($tokens[$stackPointer]);
-
-		if ($tokens[$arrayOpenerPointer]['line'] === $tokens[$arrayCloserPointer]['line']) {
+		if ($tokenOpener['line'] === $tokenCloser['line']) {
 			return;
 		}
 
 		/** @var int $pointerPreviousToClose */
-		$pointerPreviousToClose = TokenHelper::findPreviousEffective($phpcsFile, $arrayCloserPointer - 1);
+		$pointerPreviousToClose = TokenHelper::findPreviousEffective($phpcsFile, $pointerCloser - 1);
 		$tokenPreviousToClose = $tokens[$pointerPreviousToClose];
 
 		if (
-			$pointerPreviousToClose === $arrayOpenerPointer
+			$pointerPreviousToClose === $pointerOpener
 			|| $tokenPreviousToClose['code'] === T_COMMA
-			|| $tokens[$arrayCloserPointer]['line'] === $tokenPreviousToClose['line']
+			|| $tokenCloser['line'] === $tokenPreviousToClose['line']
 		) {
 			return;
 		}

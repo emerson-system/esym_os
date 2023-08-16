@@ -102,10 +102,10 @@ class RequireArrowFunctionSniff implements Sniff
 			$tokens[$closurePointer]['scope_opener'] - 1
 		);
 
-		$nonWhitespacePointerAfterUseParenthesisCloser = null;
+		$nonWhitespacePointerAfterUseParanthesisCloser = null;
 		if ($usePointer !== null) {
 			$useParenthesiCloserPointer = TokenHelper::findNext($phpcsFile, T_CLOSE_PARENTHESIS, $usePointer + 1);
-			$nonWhitespacePointerAfterUseParenthesisCloser = TokenHelper::findNextExcluding(
+			$nonWhitespacePointerAfterUseParanthesisCloser = TokenHelper::findNextExcluding(
 				$phpcsFile,
 				T_WHITESPACE,
 				$useParenthesiCloserPointer + 1
@@ -115,11 +115,11 @@ class RequireArrowFunctionSniff implements Sniff
 		$phpcsFile->fixer->beginChangeset();
 		$phpcsFile->fixer->replaceToken($closurePointer, 'fn');
 
-		if ($nonWhitespacePointerAfterUseParenthesisCloser !== null) {
+		if ($nonWhitespacePointerAfterUseParanthesisCloser !== null) {
 			FixerHelper::removeBetween(
 				$phpcsFile,
 				$tokens[$closurePointer]['parenthesis_closer'],
-				$nonWhitespacePointerAfterUseParenthesisCloser
+				$nonWhitespacePointerAfterUseParanthesisCloser
 			);
 		}
 

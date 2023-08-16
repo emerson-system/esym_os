@@ -18,10 +18,10 @@ class UseOnlyWhitelistedNamespacesSniff implements Sniff
 	/** @var bool */
 	public $allowUseFromRootNamespace = false;
 
-	/** @var list<string> */
+	/** @var string[] */
 	public $namespacesRequiredToUse = [];
 
-	/** @var list<string>|null */
+	/** @var string[]|null */
 	private $normalizedNamespacesRequiredToUse;
 
 	/**
@@ -67,7 +67,7 @@ class UseOnlyWhitelistedNamespacesSniff implements Sniff
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	private function getNamespacesRequiredToUse(): array
 	{

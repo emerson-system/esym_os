@@ -28,16 +28,16 @@ class RequireMultiLineMethodSignatureSniff extends AbstractMethodSignature
 	/** @var int|null */
 	public $minParametersCount = null;
 
-	/** @var list<string> */
+	/** @var string[] */
 	public $includedMethodPatterns = [];
 
-	/** @var list<string>|null */
+	/** @var string[]|null */
 	public $includedMethodNormalizedPatterns;
 
-	/** @var list<string> */
+	/** @var string[] */
 	public $excludedMethodPatterns = [];
 
-	/** @var list<string>|null */
+	/** @var string[]|null */
 	public $excludedMethodNormalizedPatterns;
 
 	/**
@@ -134,7 +134,7 @@ class RequireMultiLineMethodSignatureSniff extends AbstractMethodSignature
 	}
 
 	/**
-	 * @param list<string> $normalizedPatterns
+	 * @param string[] $normalizedPatterns
 	 */
 	private function isMethodNameInPatterns(string $methodName, array $normalizedPatterns): bool
 	{
@@ -152,7 +152,7 @@ class RequireMultiLineMethodSignatureSniff extends AbstractMethodSignature
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	private function getIncludedMethodNormalizedPatterns(): array
 	{
@@ -163,7 +163,7 @@ class RequireMultiLineMethodSignatureSniff extends AbstractMethodSignature
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	private function getExcludedMethodNormalizedPatterns(): array
 	{

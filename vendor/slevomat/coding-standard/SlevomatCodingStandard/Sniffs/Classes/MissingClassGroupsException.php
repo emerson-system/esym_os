@@ -9,7 +9,7 @@ use function sprintf;
 class MissingClassGroupsException extends Exception
 {
 
-	/** @param list<string> $groups */
+	/** @param string[] $groups */
 	public function __construct(array $groups)
 	{
 		parent::__construct(

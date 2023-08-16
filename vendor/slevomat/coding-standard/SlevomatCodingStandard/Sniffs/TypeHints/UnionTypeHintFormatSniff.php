@@ -240,7 +240,8 @@ class UnionTypeHintFormatSniff implements Sniff
 	{
 		$phpcsFile->fixer->beginChangeset();
 
-		FixerHelper::change($phpcsFile, $typeHint->getStartPointer(), $typeHint->getEndPointer(), $fixedTypeHint);
+		$phpcsFile->fixer->replaceToken($typeHint->getStartPointer(), $fixedTypeHint);
+		FixerHelper::removeBetweenIncluding($phpcsFile, $typeHint->getStartPointer() + 1, $typeHint->getEndPointer());
 
 		$phpcsFile->fixer->endChangeset();
 	}

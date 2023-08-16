@@ -76,9 +76,6 @@ class LoaderLoadException extends \Exception
         parent::__construct($message, $code, $previous);
     }
 
-    /**
-     * @return string
-     */
     protected function varToString(mixed $var)
     {
         if (\is_object($var)) {

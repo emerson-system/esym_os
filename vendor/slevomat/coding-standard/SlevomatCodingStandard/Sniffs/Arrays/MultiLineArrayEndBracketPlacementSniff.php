@@ -4,9 +4,8 @@ namespace SlevomatCodingStandard\Sniffs\Arrays;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
-use SlevomatCodingStandard\Helpers\ArrayHelper;
 use SlevomatCodingStandard\Helpers\TokenHelper;
-use function in_array;
+use const T_OPEN_SHORT_ARRAY;
 
 class MultiLineArrayEndBracketPlacementSniff implements Sniff
 {
@@ -18,43 +17,42 @@ class MultiLineArrayEndBracketPlacementSniff implements Sniff
 	 */
 	public function register(): array
 	{
-		return TokenHelper::$arrayTokenCodes;
+		return [T_OPEN_SHORT_ARRAY];
 	}
 
 	/**
 	 * @phpcsSuppress SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint
-	 * @param int $stackPointer
+	 * @param int $arrayStart
 	 */
-	public function process(File $phpcsFile, $stackPointer): void
+	public function process(File $phpcsFile, $arrayStart): void
 	{
 		$tokens = $phpcsFile->getTokens();
 
-		if (ArrayHelper::isMultiLine($phpcsFile, $stackPointer) === false) {
+		$arrayEnd = $tokens[$arrayStart]['bracket_closer'];
+
+		if ($tokens[$arrayStart]['line'] === $tokens[$arrayEnd]['line']) {
 			return;
 		}
 
-		[$arrayOpenerPointer, $arrayCloserPointer] = ArrayHelper::openClosePointers($tokens[$stackPointer]);
-
-		$nextEffective = TokenHelper::findNextEffective($phpcsFile, $arrayOpenerPointer + 1, $arrayCloserPointer);
-		if ($nextEffective === null || in_array($tokens[$nextEffective]['code'], TokenHelper::$arrayTokenCodes, true) === false) {
+		$nextArrayStart = TokenHelper::findNextEffective($phpcsFile, $arrayStart + 1, $arrayEnd);
+		if ($nextArrayStart === null || $tokens[$nextArrayStart]['code'] !== T_OPEN_SHORT_ARRAY) {
 			return;
 		}
 
-		[$nextPointerOpener, $nextPointerCloser] = ArrayHelper::openClosePointers($tokens[$nextEffective]);
-
-		$arraysStartAtSameLine = $tokens[$arrayOpenerPointer]['line'] === $tokens[$nextPointerOpener]['line'];
-		$arraysEndAtSameLine = $tokens[$arrayCloserPointer]['line'] === $tokens[$nextPointerCloser]['line'];
+		$nextArrayEnd = $tokens[$nextArrayStart]['bracket_closer'];
+		$arraysStartAtSameLine = $tokens[$arrayStart]['line'] === $tokens[$nextArrayStart]['line'];
+		$arraysEndAtSameLine = $tokens[$arrayEnd]['line'] === $tokens[$nextArrayEnd]['line'];
 		if (!$arraysStartAtSameLine || $arraysEndAtSameLine) {
 			return;
 		}
 
 		$error = "Expected nested array to end at the same line as it's parent. Either put the nested array's end at the same line as the parent's end, or put the nested array start on it's own line.";
-		$fix = $phpcsFile->addFixableError($error, $arrayOpenerPointer, self::CODE_ARRAY_END_WRONG_PLACEMENT);
+		$fix = $phpcsFile->addFixableError($error, $arrayStart, self::CODE_ARRAY_END_WRONG_PLACEMENT);
 		if (!$fix) {
 			return;
 		}
 
-		$phpcsFile->fixer->addContent($arrayOpenerPointer, $phpcsFile->eolChar);
+		$phpcsFile->fixer->addContent($arrayStart, $phpcsFile->eolChar);
 	}
 
 }

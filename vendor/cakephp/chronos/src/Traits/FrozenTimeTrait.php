@@ -2,18 +2,17 @@
 declare(strict_types=1);
 
 /**
- * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
- * @link          https://cakephp.org CakePHP(tm) Project
- * @license       https://www.opensource.org/licenses/mit-license.php MIT License
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * @link          http://cakephp.org CakePHP(tm) Project
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Chronos\Traits;
 
-use Cake\Chronos\ChronosDate;
 use Cake\Chronos\ChronosInterface;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -121,10 +120,6 @@ trait FrozenTimeTrait
      */
     public function timezone($value)
     {
-        if (static::class === ChronosDate::class) {
-            trigger_error('2.5 timezone() will be removed in 3.x.', E_USER_DEPRECATED);
-        }
-
         return $this;
     }
 
@@ -138,10 +133,6 @@ trait FrozenTimeTrait
      */
     public function tz($value)
     {
-        if (static::class === ChronosDate::class) {
-            trigger_error('2.5 tz() will be removed in 3.x.', E_USER_DEPRECATED);
-        }
-
         return $this;
     }
 
@@ -156,24 +147,6 @@ trait FrozenTimeTrait
     #[ReturnTypeWillChange]
     public function setTimezone($value)
     {
-        if (static::class === ChronosDate::class) {
-            $trace = debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 5);
-            $found = false;
-            foreach ($trace as $frame) {
-                $found = in_array(
-                    $frame['class'],
-                    ['PHPUnit\Framework\Assert', 'PHPUnit\Framework\Constraint\IsEqual'],
-                    true
-                );
-                if ($found) {
-                    break;
-                }
-            }
-            if (!$found) {
-                trigger_error('2.5 setTimezone() will be removed in 3.x.', E_USER_DEPRECATED);
-            }
-        }
-
         return $this;
     }
 
@@ -189,10 +162,6 @@ trait FrozenTimeTrait
     #[ReturnTypeWillChange]
     public function setTimestamp($value): ChronosInterface
     {
-        if (static::class === ChronosDate::class) {
-            trigger_error('2.5 setTimestamp() will be removed in 3.x.', E_USER_DEPRECATED);
-        }
-
         return parent::setTimestamp($value)->setTime(0, 0, 0);
     }
 

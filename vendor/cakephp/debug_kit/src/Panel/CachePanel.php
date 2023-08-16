@@ -55,17 +55,9 @@ class CachePanel extends DebugPanel
             if (isset($config['className']) && $config['className'] instanceof DebugEngine) {
                 $instance = $config['className'];
             } elseif (isset($config['className'])) {
-                /** @var \Cake\Cache\CacheEngine $engine */
-                $engine = Cache::pool($name);
-                // Unload from the cache registry so that subsequence calls to
-                // Cache::pool($name) use the new config with DebugEngine instance set below.
-                Cache::getRegistry()->unload($name);
-
-                $instance = new DebugEngine($engine, $name, $this->logger);
-                $instance->init();
-                $config['className'] = $instance;
-
                 Cache::drop($name);
+                $instance = new DebugEngine($config, $name, $this->logger);
+                $config['className'] = $instance;
                 Cache::setConfig($name, $config);
             }
             if (isset($instance)) {

@@ -16,7 +16,6 @@ declare(strict_types=1);
  */
 namespace Cake\Mailer\Transport;
 
-use Cake\Core\Exception\CakeException;
 use Cake\Mailer\AbstractTransport;
 use Cake\Mailer\Message;
 use Cake\Network\Exception\SocketException;
@@ -29,15 +28,8 @@ use RuntimeException;
  */
 class SmtpTransport extends AbstractTransport
 {
-    public const AUTH_PLAIN = 'PLAIN';
-    public const AUTH_LOGIN = 'LOGIN';
-    public const AUTH_XOAUTH2 = 'XOAUTH2';
-
-    public const SUPPORTED_AUTH_TYPES = [
-        self::AUTH_PLAIN,
-        self::AUTH_LOGIN,
-        self::AUTH_XOAUTH2,
-    ];
+    protected const AUTH_PLAIN = 'PLAIN';
+    protected const AUTH_LOGIN = 'LOGIN';
 
     /**
      * Default config for this class
@@ -53,7 +45,6 @@ class SmtpTransport extends AbstractTransport
         'client' => null,
         'tls' => false,
         'keepAlive' => false,
-        'authType' => null,
     ];
 
     /**
@@ -78,7 +69,7 @@ class SmtpTransport extends AbstractTransport
     protected $_lastResponse = [];
 
     /**
-     * Authentication type.
+     * Detected authentication type.
      *
      * @var string|null
      */
@@ -239,22 +230,7 @@ class SmtpTransport extends AbstractTransport
      */
     protected function _parseAuthType(): void
     {
-        $authType = $this->getConfig('authType');
-        if ($authType !== null) {
-            if (!in_array($authType, self::SUPPORTED_AUTH_TYPES)) {
-                throw new CakeException(
-                    'Unsupported auth type. Available types are: ' . implode(', ', self::SUPPORTED_AUTH_TYPES)
-                );
-            }
-
-            $this->authType = $authType;
-
-            return;
-        }
-
-        if (!isset($this->_config['username'], $this->_config['password'])) {
-            return;
-        }
+        $this->authType = null;
 
         $auth = '';
         foreach ($this->_lastResponse as $line) {
@@ -264,19 +240,17 @@ class SmtpTransport extends AbstractTransport
             }
         }
 
-        if ($auth === '') {
+        if (strpos($auth, self::AUTH_PLAIN) !== false) {
+            $this->authType = self::AUTH_PLAIN;
+
             return;
         }
 
-        foreach (self::SUPPORTED_AUTH_TYPES as $type) {
-            if (strpos($auth, $type) !== false) {
-                $this->authType = $type;
+        if (strpos($auth, self::AUTH_LOGIN) !== false) {
+            $this->authType = self::AUTH_LOGIN;
 
-                return;
-            }
+            return;
         }
-
-        throw new CakeException('Unsupported auth type: ' . substr($auth, 5));
     }
 
     /**
@@ -348,27 +322,27 @@ class SmtpTransport extends AbstractTransport
 
         $username = $this->_config['username'];
         $password = $this->_config['password'];
+        if (empty($this->authType)) {
+            $replyCode = $this->_authPlain($username, $password);
+            if ($replyCode === '235') {
+                return;
+            }
 
-        switch ($this->authType) {
-            case self::AUTH_PLAIN:
-                $this->_authPlain($username, $password);
-                break;
+            $this->_authLogin($username, $password);
 
-            case self::AUTH_LOGIN:
-                $this->_authLogin($username, $password);
-                break;
+            return;
+        }
 
-            case self::AUTH_XOAUTH2:
-                $this->_authXoauth2($username, $password);
-                break;
+        if ($this->authType === self::AUTH_PLAIN) {
+            $this->_authPlain($username, $password);
 
-            default:
-                $replyCode = $this->_authPlain($username, $password);
-                if ($replyCode === '235') {
-                    break;
-                }
+            return;
+        }
 
-                $this->_authLogin($username, $password);
+        if ($this->authType === self::AUTH_LOGIN) {
+            $this->_authLogin($username, $password);
+
+            return;
         }
     }
 
@@ -418,26 +392,6 @@ class SmtpTransport extends AbstractTransport
                 'AUTH command not recognized or not implemented, SMTP server may not require authentication.'
             );
         }
-    }
-
-    /**
-     * Authenticate using AUTH XOAUTH2 mechanism.
-     *
-     * @param string $username Username.
-     * @param string $token Token.
-     * @return void
-     * @see https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth#smtp-protocol-exchange
-     * @see https://developers.google.com/gmail/imap/xoauth2-protocol#smtp_protocol_exchange
-     */
-    protected function _authXoauth2(string $username, string $token): void
-    {
-        $authString = base64_encode(sprintf(
-            "user=%s\1auth=Bearer %s\1\1",
-            $username,
-            $token
-        ));
-
-        $this->_smtpSend('AUTH XOAUTH2 ' . $authString, '235');
     }
 
     /**

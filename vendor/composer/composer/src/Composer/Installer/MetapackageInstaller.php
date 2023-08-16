@@ -124,11 +124,9 @@ class MetapackageInstaller implements InstallerInterface
 
     /**
      * @inheritDoc
-     *
-     * @return null
      */
     public function getInstallPath(PackageInterface $package)
     {
-        return null;
+        return '';
     }
 }

@@ -22,19 +22,19 @@ use const PATHINFO_EXTENSION;
 class FilepathNamespaceExtractor
 {
 
-	/** @var array<string, string> */
+	/** @var string[] */
 	private $rootNamespaces;
 
-	/** @var array<string, bool> dir(string) => true(bool) */
+	/** @var bool[] dir(string) => true(bool) */
 	private $skipDirs;
 
-	/** @var list<string> */
+	/** @var string[] */
 	private $extensions;
 
 	/**
-	 * @param array<string, string> $rootNamespaces directory(string) => namespace
-	 * @param list<string> $skipDirs
-	 * @param list<string> $extensions index(integer) => extension
+	 * @param string[] $rootNamespaces directory(string) => namespace
+	 * @param string[] $skipDirs
+	 * @param string[] $extensions index(integer) => extension
 	 */
 	public function __construct(array $rootNamespaces, array $skipDirs, array $extensions)
 	{
@@ -52,7 +52,7 @@ class FilepathNamespaceExtractor
 			return null;
 		}
 
-		/** @var list<string> $pathParts */
+		/** @var string[] $pathParts */
 		$pathParts = preg_split('~[/\\\]~', $path);
 		$rootNamespace = null;
 		while (count($pathParts) > 0) {

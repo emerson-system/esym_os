@@ -145,9 +145,8 @@ class DeclareStrictTypesSniff implements Sniff
 			);
 			if ($fix) {
 				$phpcsFile->fixer->beginChangeset();
-
-				FixerHelper::change($phpcsFile, $strictTypesPointer, $numberPointer, $format);
-
+				$phpcsFile->fixer->replaceToken($strictTypesPointer, $format);
+				FixerHelper::removeBetweenIncluding($phpcsFile, $strictTypesPointer + 1, $numberPointer);
 				$phpcsFile->fixer->endChangeset();
 			}
 		}
@@ -172,9 +171,8 @@ class DeclareStrictTypesSniff implements Sniff
 				);
 				if ($fix) {
 					$phpcsFile->fixer->beginChangeset();
-
-					FixerHelper::change($phpcsFile, $openTagPointer, $declarePointer - 1, '<?php ');
-
+					$phpcsFile->fixer->replaceToken($openTagPointer, '<?php ');
+					FixerHelper::removeBetween($phpcsFile, $openTagPointer, $declarePointer);
 					$phpcsFile->fixer->endChangeset();
 				}
 			}

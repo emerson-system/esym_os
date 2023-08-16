@@ -229,9 +229,10 @@ class DateTimeType extends BaseType implements BatchCastingInterface
         $class = $this->_className;
         if (is_int($value)) {
             $instance = new $class('@' . $value);
-        } elseif (strpos($value, '0000-00-00') === 0) {
-            return null;
         } else {
+            if (strpos($value, '0000-00-00') === 0) {
+                return null;
+            }
             $instance = new $class($value, $this->dbTimezone);
         }
 
@@ -281,13 +282,14 @@ class DateTimeType extends BaseType implements BatchCastingInterface
             }
 
             $value = $values[$field];
+            if (strpos($value, '0000-00-00') === 0) {
+                $values[$field] = null;
+                continue;
+            }
 
             $class = $this->_className;
             if (is_int($value)) {
                 $instance = new $class('@' . $value);
-            } elseif (strpos($value, '0000-00-00') === 0) {
-                $values[$field] = null;
-                continue;
             } else {
                 $instance = new $class($value, $this->dbTimezone);
             }

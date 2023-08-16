@@ -233,7 +233,7 @@ class ModelCommand extends BakeCommand
         ];
 
         $primary = $table->getPrimaryKey();
-        $associations = $this->findBelongsTo($table, $associations, $args);
+        $associations = $this->findBelongsTo($table, $associations);
 
         if (is_array($primary) && count($primary) > 1) {
             $io->warning(
@@ -329,10 +329,9 @@ class ModelCommand extends BakeCommand
      *
      * @param \Cake\ORM\Table $model Database\Table instance of table being generated.
      * @param array $associations Array of in progress associations
-     * @param \Cake\Console\Arguments|null $args CLI arguments
      * @return array Associations with belongsTo added in.
      */
-    public function findBelongsTo(Table $model, array $associations, ?Arguments $args = null): array
+    public function findBelongsTo(Table $model, array $associations): array
     {
         $schema = $model->getSchema();
         foreach ($schema->columns() as $fieldName) {
@@ -363,13 +362,11 @@ class ModelCommand extends BakeCommand
                     get_class($associationTable) === Table::class &&
                     !in_array(Inflector::tableize($tmpModelName), $tables, true)
                 ) {
-                    $allowAliasRelations = $args && $args->getOption('skip-relation-check');
                     $found = $this->findTableReferencedBy($schema, $fieldName);
-                    if ($found) {
-                        $tmpModelName = Inflector::camelize($found);
-                    } elseif (!$allowAliasRelations) {
+                    if (!$found) {
                         continue;
                     }
+                    $tmpModelName = Inflector::camelize($found);
                 }
                 $assoc = [
                     'alias' => $tmpModelName,
@@ -1322,10 +1319,6 @@ class ModelCommand extends BakeCommand
         ])->addOption('no-fixture', [
             'boolean' => true,
             'help' => 'Do not generate a test fixture skeleton.',
-        ])->addOption('skip-relation-check', [
-            'boolean' => true,
-            'help' => 'Generate relations for all "example_id" fields'
-            . ' without checking the database if a table "examples" exists.',
         ])->setEpilog(
             'Omitting all arguments and options will list the table names you can generate models for.'
         );

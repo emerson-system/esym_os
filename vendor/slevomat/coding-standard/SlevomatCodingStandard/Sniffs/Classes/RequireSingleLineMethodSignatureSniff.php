@@ -20,16 +20,16 @@ class RequireSingleLineMethodSignatureSniff extends AbstractMethodSignature
 	/** @var int */
 	public $maxLineLength = 120;
 
-	/** @var list<string> */
+	/** @var string[] */
 	public $includedMethodPatterns = [];
 
-	/** @var list<string>|null */
+	/** @var string[]|null */
 	public $includedMethodNormalizedPatterns;
 
-	/** @var list<string> */
+	/** @var string[] */
 	public $excludedMethodPatterns = [];
 
-	/** @var list<string>|null */
+	/** @var string[]|null */
 	public $excludedMethodNormalizedPatterns;
 
 	/**
@@ -82,13 +82,15 @@ class RequireSingleLineMethodSignatureSniff extends AbstractMethodSignature
 
 		$phpcsFile->fixer->beginChangeset();
 
-		FixerHelper::change($phpcsFile, $signatureStartPointer, $signatureEndPointer, $signature);
+		$phpcsFile->fixer->replaceToken($signatureStartPointer, $signature);
+
+		FixerHelper::removeBetweenIncluding($phpcsFile, $signatureStartPointer + 1, $signatureEndPointer);
 
 		$phpcsFile->fixer->endChangeset();
 	}
 
 	/**
-	 * @param list<string> $normalizedPatterns
+	 * @param string[] $normalizedPatterns
 	 */
 	private function isMethodNameInPatterns(string $methodName, array $normalizedPatterns): bool
 	{
@@ -106,7 +108,7 @@ class RequireSingleLineMethodSignatureSniff extends AbstractMethodSignature
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	private function getIncludedMethodNormalizedPatterns(): array
 	{
@@ -117,7 +119,7 @@ class RequireSingleLineMethodSignatureSniff extends AbstractMethodSignature
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	private function getExcludedMethodNormalizedPatterns(): array
 	{

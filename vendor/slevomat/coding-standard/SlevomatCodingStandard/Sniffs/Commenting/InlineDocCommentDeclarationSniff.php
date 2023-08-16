@@ -4,8 +4,7 @@ namespace SlevomatCodingStandard\Sniffs\Commenting;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
-use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
-use SlevomatCodingStandard\Helpers\Annotation;
+use SlevomatCodingStandard\Helpers\Annotation\VariableAnnotation;
 use SlevomatCodingStandard\Helpers\AnnotationHelper;
 use SlevomatCodingStandard\Helpers\FixerHelper;
 use SlevomatCodingStandard\Helpers\PropertyHelper;
@@ -112,8 +111,8 @@ class InlineDocCommentDeclarationSniff implements Sniff
 			return;
 		}
 
-		/** @var list<Annotation<VarTagValueNode>> $annotations */
-		$annotations = AnnotationHelper::getAnnotations($phpcsFile, $commentOpenPointer, '@var');
+		/** @var list<VariableAnnotation> $annotations */
+		$annotations = AnnotationHelper::getAnnotationsByName($phpcsFile, $commentOpenPointer, '@var');
 
 		if ($annotations === []) {
 			return;
@@ -154,24 +153,23 @@ class InlineDocCommentDeclarationSniff implements Sniff
 	}
 
 	/**
-	 * @param list<Annotation<VarTagValueNode>> $annotations
+	 * @param list<VariableAnnotation> $annotations
 	 */
 	private function checkFormat(File $phpcsFile, array $annotations): void
 	{
 		foreach ($annotations as $annotation) {
-			if (!$annotation->isInvalid() && $annotation->getValue()->variableName !== '') {
+			if (!$annotation->isInvalid() && $annotation->getVariableName() !== null) {
 				continue;
 			}
 
-			$variableName = '$variableName';
+			$annotationContent = $annotation->getContent();
 
-			$annotationContent = (string) $annotation->getValue();
-
+			$variableName = '$variable';
 			$type = null;
 
 			if (
-				$annotationContent !== ''
-				&& preg_match('~(\$\w+)(?:\s+(.+))?$~i', $annotationContent, $matches) === 1
+				$annotationContent !== null
+				&& preg_match('~(\$\w+)(?:\s+(.+))?$~i', $annotation->getContent(), $matches) === 1
 			) {
 				$variableName = $matches[1];
 				$type = $matches[2] ?? null;
@@ -184,7 +182,7 @@ class InlineDocCommentDeclarationSniff implements Sniff
 				$phpcsFile->addError(
 					sprintf(
 						'Invalid inline documentation comment format "@var %1$s", expected "@var type %2$s Optional description".',
-						$annotationContent,
+						$annotation->getContent(),
 						$variableName
 					),
 					$annotation->getStartPointer(),
@@ -197,7 +195,7 @@ class InlineDocCommentDeclarationSniff implements Sniff
 			$fix = $phpcsFile->addFixableError(
 				sprintf(
 					'Invalid inline documentation comment format "@var %1$s", expected "@var %2$s %3$s".',
-					$annotationContent,
+					$annotation->getContent(),
 					$type,
 					$variableName
 				),
@@ -227,7 +225,7 @@ class InlineDocCommentDeclarationSniff implements Sniff
 	}
 
 	/**
-	 * @param list<Annotation<VarTagValueNode>> $annotations
+	 * @param list<VariableAnnotation> $annotations
 	 */
 	private function checkVariable(File $phpcsFile, array $annotations, int $docCommentOpenerPointer, int $docCommentCloserPointer): void
 	{
@@ -242,8 +240,8 @@ class InlineDocCommentDeclarationSniff implements Sniff
 				continue;
 			}
 
-			$variableName = $variableAnnotation->getValue()->variableName;
-			if ($variableName === '') {
+			$variableName = $variableAnnotation->getVariableName();
+			if ($variableName === null) {
 				continue;
 			}
 
@@ -306,8 +304,8 @@ class InlineDocCommentDeclarationSniff implements Sniff
 				continue;
 			}
 
-			$variableName = $variableAnnotation->getValue()->variableName;
-			if ($variableName === '') {
+			$variableName = $variableAnnotation->getVariableName();
+			if ($variableName === null) {
 				continue;
 			}
 

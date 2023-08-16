@@ -94,7 +94,8 @@ class UselessTernaryOperatorSniff implements Sniff
 		if ($tokens[$pointerAfterInlineThen]['code'] === T_FALSE) {
 			$negativeCondition = ConditionHelper::getNegativeCondition($phpcsFile, $conditionStartPointer, $conditionEndPointer);
 
-			FixerHelper::change($phpcsFile, $conditionStartPointer, $conditionEndPointer, $negativeCondition);
+			$phpcsFile->fixer->replaceToken($conditionStartPointer, $negativeCondition);
+			FixerHelper::removeBetweenIncluding($phpcsFile, $conditionStartPointer + 1, $conditionEndPointer);
 		}
 
 		FixerHelper::removeBetween($phpcsFile, $conditionEndPointer, $pointerAfterTernaryOperator);

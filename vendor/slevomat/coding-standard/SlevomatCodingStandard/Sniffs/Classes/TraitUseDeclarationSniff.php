@@ -91,8 +91,9 @@ class TraitUseDeclarationSniff implements Sniff
 		$otherCommaPointers = TokenHelper::findNextAll($phpcsFile, T_COMMA, $usePointer + 1, $endPointer);
 		foreach ($otherCommaPointers as $otherCommaPointer) {
 			$pointerAfterComma = TokenHelper::findNextEffective($phpcsFile, $otherCommaPointer + 1);
+			$phpcsFile->fixer->replaceToken($otherCommaPointer, ';' . $phpcsFile->eolChar . $indentation . 'use ');
 
-			FixerHelper::change($phpcsFile, $otherCommaPointer, $pointerAfterComma - 1, ';' . $phpcsFile->eolChar . $indentation . 'use ');
+			FixerHelper::removeBetween($phpcsFile, $otherCommaPointer, $pointerAfterComma);
 		}
 
 		$phpcsFile->fixer->endChangeset();

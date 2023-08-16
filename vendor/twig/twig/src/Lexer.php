@@ -19,8 +19,6 @@ use Twig\Error\SyntaxError;
  */
 class Lexer
 {
-    private $isInitialized = false;
-
     private $tokens;
     private $code;
     private $cursor;
@@ -63,15 +61,6 @@ class Lexer
             'whitespace_line_chars' => ' \t\0\x0B',
             'interpolation' => ['#{', '}'],
         ], $options);
-    }
-
-    private function initialize()
-    {
-        if ($this->isInitialized) {
-            return;
-        }
-
-        $this->isInitialized = true;
 
         // when PHP 7.3 is the min version, we will be able to remove the '#' part in preg_quote as it's part of the default
         $this->regexes = [
@@ -164,8 +153,6 @@ class Lexer
 
     public function tokenize(Source $source): TokenStream
     {
-        $this->initialize();
-
         $this->source = $source;
         $this->code = str_replace(["\r\n", "\r"], "\n", $source->getCode());
         $this->cursor = 0;
@@ -315,13 +302,8 @@ class Lexer
             }
         }
 
-        // spread operator
-        if ('.' === $this->code[$this->cursor] && ($this->cursor + 2 < $this->end) && '.' === $this->code[$this->cursor + 1] && '.' === $this->code[$this->cursor + 2]) {
-            $this->pushToken(Token::SPREAD_TYPE, '...');
-            $this->moveCursor('...');
-        }
         // arrow function
-        elseif ('=' === $this->code[$this->cursor] && '>' === $this->code[$this->cursor + 1]) {
+        if ('=' === $this->code[$this->cursor] && '>' === $this->code[$this->cursor + 1]) {
             $this->pushToken(Token::ARROW_TYPE, '=>');
             $this->moveCursor('=>');
         }

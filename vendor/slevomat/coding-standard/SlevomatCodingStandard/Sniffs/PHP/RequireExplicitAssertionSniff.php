@@ -5,7 +5,6 @@ namespace SlevomatCodingStandard\Sniffs\PHP;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprIntegerNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ConstTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
@@ -13,7 +12,7 @@ use PHPStan\PhpDocParser\Ast\Type\IntersectionTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\ThisTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\TypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
-use SlevomatCodingStandard\Helpers\Annotation;
+use SlevomatCodingStandard\Helpers\Annotation\VariableAnnotation;
 use SlevomatCodingStandard\Helpers\AnnotationHelper;
 use SlevomatCodingStandard\Helpers\FixerHelper;
 use SlevomatCodingStandard\Helpers\IndentationHelper;
@@ -87,24 +86,22 @@ class RequireExplicitAssertionSniff implements Sniff
 			$codePointer = $firstPointerOnPreviousLine;
 		}
 
-		/** @var list<Annotation<VarTagValueNode>> $variableAnnotations */
-		$variableAnnotations = AnnotationHelper::getAnnotations($phpcsFile, $docCommentOpenPointer, '@var');
+		$variableAnnotations = AnnotationHelper::getAnnotationsByName($phpcsFile, $docCommentOpenPointer, '@var');
 		if (count($variableAnnotations) === 0) {
 			return;
 		}
 
+		/** @var VariableAnnotation $variableAnnotation */
 		foreach (array_reverse($variableAnnotations) as $variableAnnotation) {
 			if ($variableAnnotation->isInvalid()) {
 				continue;
 			}
 
-			$variableName = $variableAnnotation->getValue()->variableName;
-
-			if ($variableName === '') {
+			if ($variableAnnotation->getVariableName() === null) {
 				continue;
 			}
 
-			$variableAnnotationType = $variableAnnotation->getValue()->type;
+			$variableAnnotationType = $variableAnnotation->getType();
 
 			if (
 				$variableAnnotationType instanceof UnionTypeNode
@@ -122,7 +119,7 @@ class RequireExplicitAssertionSniff implements Sniff
 			/** @var IdentifierTypeNode|ThisTypeNode|UnionTypeNode|GenericTypeNode $variableAnnotationType */
 			$variableAnnotationType = $variableAnnotationType;
 
-			$assertion = $this->createAssert($variableName, $variableAnnotationType);
+			$assertion = $this->createAssert($variableAnnotation->getVariableName(), $variableAnnotationType);
 
 			if ($assertion === null) {
 				continue;
@@ -134,7 +131,7 @@ class RequireExplicitAssertionSniff implements Sniff
 					continue;
 				}
 
-				if ($variableName !== $tokens[$codePointer]['content']) {
+				if ($variableAnnotation->getVariableName() !== $tokens[$codePointer]['content']) {
 					continue;
 				}
 
@@ -147,7 +144,7 @@ class RequireExplicitAssertionSniff implements Sniff
 				$variablePointerInList = TokenHelper::findNextContent(
 					$phpcsFile,
 					T_VARIABLE,
-					$variableName,
+					$variableAnnotation->getVariableName(),
 					$listParenthesisOpener + 1,
 					$tokens[$listParenthesisOpener]['parenthesis_closer']
 				);
@@ -167,7 +164,7 @@ class RequireExplicitAssertionSniff implements Sniff
 				$variablePointerInList = TokenHelper::findNextContent(
 					$phpcsFile,
 					T_VARIABLE,
-					$variableName,
+					$variableAnnotation->getVariableName(),
 					$codePointer + 1,
 					$tokens[$codePointer]['bracket_closer']
 				);
@@ -187,7 +184,7 @@ class RequireExplicitAssertionSniff implements Sniff
 					$variablePointerInWhile = TokenHelper::findNextContent(
 						$phpcsFile,
 						T_VARIABLE,
-						$variableName,
+						$variableAnnotation->getVariableName(),
 						$tokens[$codePointer]['parenthesis_opener'] + 1,
 						$tokens[$codePointer]['parenthesis_closer']
 					);
@@ -209,7 +206,7 @@ class RequireExplicitAssertionSniff implements Sniff
 					$variablePointerInForeach = TokenHelper::findNextContent(
 						$phpcsFile,
 						T_VARIABLE,
-						$variableName,
+						$variableAnnotation->getVariableName(),
 						$asPointer + 1,
 						$tokens[$codePointer]['parenthesis_closer']
 					);
@@ -367,7 +364,7 @@ class RequireExplicitAssertionSniff implements Sniff
 
 	/**
 	 * @param IdentifierTypeNode|ThisTypeNode|GenericTypeNode $typeNode
-	 * @return list<string>
+	 * @return string[]
 	 */
 	private function createConditions(string $variableName, TypeNode $typeNode): array
 	{

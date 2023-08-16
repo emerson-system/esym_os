@@ -424,7 +424,7 @@ will generate::
     <?php
     use Migrations\AbstractMigration;
 
-    class AlterPriceOnProducts extends AbstractMigration
+    class AlterPriceFromProducts extends AbstractMigration
     {
         public function change()
         {

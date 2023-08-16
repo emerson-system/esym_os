@@ -40,25 +40,21 @@
 {%         for name, constraint in createData.tables[table].constraints %}
 {%             if constraint['columns'] != primaryKeysColumns %}
             ->addIndex(
-                [{{ Migration.stringifyList(constraint['columns'], {'indent': 5}) | raw }}],
-{%                 set params = {'name': name} %}
+                [{{ Migration.stringifyList(constraint['columns'], {'indent': 5}) | raw }}]{{  (constraint['type'] == 'unique') ? ',' : '' }}
 {%                 if constraint['type'] == 'unique' %}
-{%                     set params = params|merge({'unique': true}) %}
+                ['unique' => true]
 {%                 endif %}
-                [{{ Migration.stringifyList(params, {'indent': 5}) | raw }}]
             )
 {%             endif %}
 {%         endfor %}
 {%     endif %}
-{%     for indexName, index in createData.tables[table].indexes %}
+{%     for index in createData.tables[table].indexes %}
 {%         set indexColumns = index['columns'] | sort %}
             ->addIndex(
-                [{{ Migration.stringifyList(index['columns'], {'indent': 5}) | raw }}],
-{%         set params = {'name': indexName} %}
-{%         if index['type'] == 'fulltext' %}
-{%             set params = params|merge({'fulltext': true}) %}
-{%         endif %}
-                [{{ Migration.stringifyList(params, {'indent': 5}) | raw }}]
+                [{{ Migration.stringifyList(index['columns'], {'indent': 5}) | raw }}]{{ (index['type'] == 'fulltext') ? ',' : '' }}
+{%             if index['type'] == 'fulltext' %}
+                ['type' => 'fulltext']
+{%             endif %}
             )
 {%     endfor %}
             ->create();
@@ -66,8 +62,8 @@
 {% if createData.constraints %}
 {%   for table, tableConstraints in createData.constraints %}
 {{-     element('Migrations.add-foreign-keys', {
-         constraints: createData.constraints,
-         table: table,
+         constraints: tableConstraints,
+         table: table
        })
 -}}
 {%   endfor -%}

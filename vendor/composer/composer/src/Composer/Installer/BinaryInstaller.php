@@ -337,7 +337,8 @@ if (PHP_VERSION_ID < 80000) {
         (function_exists('stream_get_wrappers') && in_array('phpvfscomposer', stream_get_wrappers(), true))
         || (function_exists('stream_wrapper_register') && stream_wrapper_register('phpvfscomposer', 'Composer\BinProxyWrapper'))
     ) {
-        return include("phpvfscomposer://" . $binPathExported);
+        include("phpvfscomposer://" . $binPathExported);
+        exit(0);
     }
 }
 
@@ -359,7 +360,7 @@ namespace Composer;
 
 $globalsCode
 $streamProxyCode
-return include $binPathExported;
+include $binPathExported;
 
 PROXY;
         }

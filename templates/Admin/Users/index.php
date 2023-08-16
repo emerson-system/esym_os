@@ -39,7 +39,7 @@
                     <td class="actions">
                         <?= $this->Html->link(__('Visualizar'), ['action' => 'visualizar', $user->id]) ?>
                         <?= $this->Html->link(__('Editar'), ['action' => 'editar', $user->id]) ?>
-                        <?= $this->Form->postLink(__('Excluir'), ['action' => 'excluir', $user->id], ['confirm' => __('Tem certeza de que deseja excluir # {0}?', $user->id)]) ?>
+                        <?= $this->Form->postLink(__('Excluir'), ['action' => 'excluir', $user->id], ['confirm' => __('Tem certeza de que deseja excluir # {0}?', $user->name)]) ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>

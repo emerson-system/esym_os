@@ -25,7 +25,6 @@ use Cake\Routing\Router;
 use DebugKit\Panel\PanelRegistry;
 use PDOException;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Used to create the panels and inject a toolbar into
@@ -338,11 +337,10 @@ class ToolbarService
      * contains HTML and there is a </body> tag.
      *
      * @param \DebugKit\Model\Entity\Request $row The request data to inject.
-     * @param \Psr\Http\Message\ServerRequestInterface $request The request to augment.
      * @param \Psr\Http\Message\ResponseInterface $response The response to augment.
      * @return \Psr\Http\Message\ResponseInterface The modified response
      */
-    public function injectScripts($row, ServerRequestInterface $request, ResponseInterface $response)
+    public function injectScripts($row, ResponseInterface $response)
     {
         $response = $response->withHeader('X-DEBUGKIT-ID', (string)$row->id);
         if (strpos($response->getHeaderLine('Content-Type'), 'html') === false) {
@@ -359,18 +357,13 @@ class ToolbarService
         if ($pos === false) {
             return $response;
         }
-        $nonce = $request->getAttribute('cspScriptNonce');
-        if ($nonce) {
-            $nonce = sprintf(' nonce="%s"', $nonce);
-        }
 
         $url = Router::url('/', true);
         $script = sprintf(
-            '<script id="__debug_kit_script" data-id="%s" data-url="%s" type="module" src="%s"%s></script>',
+            '<script id="__debug_kit_script" data-id="%s" data-url="%s" type="module" src="%s"></script>',
             $row->id,
             $url,
-            Router::url($this->getToolbarUrl()),
-            $nonce
+            Router::url($this->getToolbarUrl())
         );
         $contents = substr($contents, 0, $pos) . $script . substr($contents, $pos);
         $body->rewind();

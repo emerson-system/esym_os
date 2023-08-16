@@ -124,7 +124,9 @@ class RequireTernaryOperatorSniff implements Sniff
 
 		FixerHelper::removeBetween($phpcsFile, $tokens[$ifPointer]['parenthesis_closer'], $pointerAfterReturnInIf);
 
-		FixerHelper::change($phpcsFile, $semicolonAfterReturnInIf, $pointerAfterReturnInElse - 1, ' : ');
+		$phpcsFile->fixer->replaceToken($semicolonAfterReturnInIf, ' : ');
+
+		FixerHelper::removeBetween($phpcsFile, $semicolonAfterReturnInIf, $pointerAfterReturnInElse);
 
 		FixerHelper::removeBetweenIncluding($phpcsFile, $semicolonAfterReturnInElse + 1, $tokens[$elsePointer]['scope_closer']);
 
@@ -202,12 +204,17 @@ class RequireTernaryOperatorSniff implements Sniff
 
 		$phpcsFile->fixer->beginChangeset();
 
-		FixerHelper::change($phpcsFile, $ifPointer, $tokens[$ifPointer]['parenthesis_opener'], sprintf('%s = ', $identificatorInIf));
+		$phpcsFile->fixer->replaceToken($ifPointer, sprintf('%s = ', $identificatorInIf));
 
-		FixerHelper::change($phpcsFile, $tokens[$ifPointer]['parenthesis_closer'], $pointerAfterAssignmentInIf - 1, ' ? ');
+		FixerHelper::removeBetweenIncluding($phpcsFile, $ifPointer + 1, $tokens[$ifPointer]['parenthesis_opener']);
 
-		FixerHelper::change($phpcsFile, $semicolonAfterAssignmentInIf, $pointerAfterAssignmentInElse - 1, ' : ');
+		$phpcsFile->fixer->replaceToken($tokens[$ifPointer]['parenthesis_closer'], ' ? ');
 
+		FixerHelper::removeBetween($phpcsFile, $tokens[$ifPointer]['parenthesis_closer'], $pointerAfterAssignmentInIf);
+
+		$phpcsFile->fixer->replaceToken($semicolonAfterAssignmentInIf, ' : ');
+
+		FixerHelper::removeBetween($phpcsFile, $semicolonAfterAssignmentInIf, $pointerAfterAssignmentInElse);
 		FixerHelper::removeBetweenIncluding($phpcsFile, $semicolonAfterAssignmentInElse + 1, $tokens[$elsePointer]['scope_closer']);
 
 		$phpcsFile->fixer->endChangeset();

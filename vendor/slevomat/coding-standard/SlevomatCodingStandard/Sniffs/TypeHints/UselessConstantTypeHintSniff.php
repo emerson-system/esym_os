@@ -8,6 +8,7 @@ use SlevomatCodingStandard\Helpers\AnnotationHelper;
 use SlevomatCodingStandard\Helpers\DocCommentHelper;
 use SlevomatCodingStandard\Helpers\FixerHelper;
 use SlevomatCodingStandard\Helpers\TokenHelper;
+use function array_key_exists;
 use function count;
 use const T_CONST;
 use const T_DOC_COMMENT_WHITESPACE;
@@ -41,9 +42,10 @@ class UselessConstantTypeHintSniff implements Sniff
 			return;
 		}
 
-		$annotations = AnnotationHelper::getAnnotations($phpcsFile, $constantPointer, '@var');
+		$annotations = AnnotationHelper::getAnnotations($phpcsFile, $constantPointer);
 
-		if ($annotations === []) {
+		$uselessAnnotation = array_key_exists('@var', $annotations);
+		if (!$uselessAnnotation) {
 			return;
 		}
 
@@ -55,7 +57,7 @@ class UselessConstantTypeHintSniff implements Sniff
 			$fixerStart = TokenHelper::findLastTokenOnPreviousLine($phpcsFile, $docCommentOpenPointer);
 			$fixerEnd = $tokens[$docCommentOpenPointer]['comment_closer'];
 		} else {
-			$annotation = $annotations[0];
+			$annotation = $annotations['@var'][0];
 
 			$fix = $phpcsFile->addFixableError(
 				'Useless @var annotation.',

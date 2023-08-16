@@ -24,7 +24,7 @@ abstract class AbstractLineCondition implements Sniff
 	protected const WHILE_CONTROL_STRUCTURE = 'while';
 	protected const DO_CONTROL_STRUCTURE = 'do';
 
-	/** @var list<string> */
+	/** @var string[] */
 	public $checkedControlStructures = [
 		self::IF_CONTROL_STRUCTURE,
 		self::WHILE_CONTROL_STRUCTURE,
@@ -89,9 +89,9 @@ abstract class AbstractLineCondition implements Sniff
 		$tokens = $phpcsFile->getTokens();
 
 		$parenthesisCloserPointer = $tokens[$whilePointer]['parenthesis_closer'];
-		$pointerAfterParenthesisCloser = TokenHelper::findNextEffective($phpcsFile, $parenthesisCloserPointer + 1);
+		$pointerAfterParentesisCloser = TokenHelper::findNextEffective($phpcsFile, $parenthesisCloserPointer + 1);
 
-		return $tokens[$pointerAfterParenthesisCloser]['code'] !== T_OPEN_CURLY_BRACKET;
+		return $tokens[$pointerAfterParentesisCloser]['code'] !== T_OPEN_CURLY_BRACKET;
 	}
 
 	protected function getLineStart(File $phpcsFile, int $pointer): string

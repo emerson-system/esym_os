@@ -3,17 +3,11 @@
 namespace SlevomatCodingStandard\Helpers;
 
 use PHP_CodeSniffer\Files\File;
-use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
-use PHPStan\PhpDocParser\Parser\ParserException;
-use PHPStan\PhpDocParser\Parser\TokenIterator;
 use function array_merge;
 use function count;
 use function in_array;
 use function preg_match;
-use function sprintf;
 use function stripos;
-use function strtolower;
 use function trim;
 use const T_ABSTRACT;
 use const T_ATTRIBUTE;
@@ -63,14 +57,14 @@ class DocCommentHelper
 		return trim(
 			TokenHelper::getContent(
 				$phpcsFile,
-				$docCommentOpenToken,
-				$phpcsFile->getTokens()[$docCommentOpenToken]['comment_closer']
+				$docCommentOpenToken + 1,
+				$phpcsFile->getTokens()[$docCommentOpenToken]['comment_closer'] - 1
 			)
 		);
 	}
 
 	/**
-	 * @return list<Comment>|null
+	 * @return Comment[]|null
 	 */
 	public static function getDocCommentDescription(File $phpcsFile, int $pointer): ?array
 	{
@@ -103,7 +97,7 @@ class DocCommentHelper
 			$tokens[$docCommentOpenPointer]['comment_closer'] + 1
 		);
 
-		/** @var list<Comment> $comments */
+		/** @var Comment[] $comments */
 		$comments = [];
 		for ($i = $descriptionStartPointer; $i < $tokenAfterDescriptionPointer; $i++) {
 			if ($tokens[$i]['code'] !== T_DOC_COMMENT_STRING) {
@@ -118,29 +112,12 @@ class DocCommentHelper
 
 	public static function hasInheritdocAnnotation(File $phpcsFile, int $pointer): bool
 	{
-		$docCommentOpenPointer = self::findDocCommentOpenPointer($phpcsFile, $pointer);
-
-		if ($docCommentOpenPointer === null) {
+		$docComment = self::getDocComment($phpcsFile, $pointer);
+		if ($docComment === null) {
 			return false;
 		}
 
-		$parsedDocComment = self::parseDocComment($phpcsFile, $docCommentOpenPointer);
-
-		if ($parsedDocComment === null) {
-			return false;
-		}
-
-		foreach ($parsedDocComment->getNode()->children as $child) {
-			if ($child instanceof PhpDocTextNode && stripos($child->text, '{@inheritdoc}') !== false) {
-				return true;
-			}
-
-			if ($child instanceof PhpDocTagNode && strtolower($child->name) === '@inheritdoc') {
-				return true;
-			}
-		}
-
-		return false;
+		return stripos($docComment, '@inheritdoc') !== false;
 	}
 
 	public static function hasDocCommentDescription(File $phpcsFile, int $pointer): bool
@@ -150,28 +127,22 @@ class DocCommentHelper
 
 	public static function findDocCommentOpenPointer(File $phpcsFile, int $pointer): ?int
 	{
-		return SniffLocalCache::getAndSetIfNotCached(
+		$tokens = $phpcsFile->getTokens();
+
+		if ($tokens[$pointer]['code'] === T_DOC_COMMENT_OPEN_TAG) {
+			return $pointer;
+		}
+
+		$found = TokenHelper::findPrevious(
 			$phpcsFile,
-			sprintf('doc-comment-open-pointer-%d', $pointer),
-			static function () use ($phpcsFile, $pointer): ?int {
-				$tokens = $phpcsFile->getTokens();
-
-				if ($tokens[$pointer]['code'] === T_DOC_COMMENT_OPEN_TAG) {
-					return $pointer;
-				}
-
-				$found = TokenHelper::findPrevious(
-					$phpcsFile,
-					[T_DOC_COMMENT_CLOSE_TAG, T_SEMICOLON, T_CLOSE_CURLY_BRACKET, T_OPEN_CURLY_BRACKET],
-					$pointer - 1
-				);
-				if ($found !== null && $tokens[$found]['code'] === T_DOC_COMMENT_CLOSE_TAG) {
-					return $tokens[$found]['comment_opener'];
-				}
-
-				return null;
-			}
+			[T_DOC_COMMENT_CLOSE_TAG, T_SEMICOLON, T_CLOSE_CURLY_BRACKET, T_OPEN_CURLY_BRACKET],
+			$pointer - 1
 		);
+		if ($found !== null && $tokens[$found]['code'] === T_DOC_COMMENT_CLOSE_TAG) {
+			return $tokens[$found]['comment_opener'];
+		}
+
+		return null;
 	}
 
 	public static function findDocCommentOwnerPointer(File $phpcsFile, int $docCommentOpenPointer): ?int
@@ -231,45 +202,8 @@ class DocCommentHelper
 			return false;
 		}
 
-		$parsedDocComment = self::parseDocComment($phpcsFile, $docCommentOpenPointer);
-
-		if ($parsedDocComment === null) {
-			return false;
-		}
-
-		foreach ($parsedDocComment->getNode()->getTags() as $annotation) {
-			if (preg_match('~^@(?:(?:phpstan|psalm)-)?var~i', $annotation->name) === 1) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	public static function parseDocComment(File $phpcsFile, int $docCommentOpenPointer): ?ParsedDocComment
-	{
-		return SniffLocalCache::getAndSetIfNotCached(
-			$phpcsFile,
-			sprintf('parsed-doc-comment-%d', $docCommentOpenPointer),
-			static function () use ($phpcsFile, $docCommentOpenPointer): ?ParsedDocComment {
-				$docComment = self::getDocComment($phpcsFile, $docCommentOpenPointer);
-
-				$docCommentTokens = new TokenIterator(PhpDocParserHelper::getLexer()->tokenize($docComment));
-
-				try {
-					$parsedDocComment = PhpDocParserHelper::getParser()->parse($docCommentTokens);
-
-					return new ParsedDocComment(
-						$docCommentOpenPointer,
-						$phpcsFile->getTokens()[$docCommentOpenPointer]['comment_closer'],
-						$parsedDocComment,
-						$docCommentTokens
-					);
-				} catch (ParserException $e) {
-					return null;
-				}
-			}
-		);
+		$docCommentContent = self::getDocComment($phpcsFile, $docCommentOpenPointer);
+		return preg_match('~^@(?:(?:phpstan|psalm)-)?var~i', $docCommentContent) === 1;
 	}
 
 }

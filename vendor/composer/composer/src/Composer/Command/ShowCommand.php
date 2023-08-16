@@ -332,12 +332,7 @@ EOT
             }
             if ($input->getOption('path')) {
                 $io->write($package->getName(), false);
-                $path = $composer->getInstallationManager()->getInstallPath($package);
-                if (is_string($path)) {
-                    $io->write(' ' . strtok(realpath($path), "\r\n"));
-                } else {
-                    $io->write(' null');
-                }
+                $io->write(' ' . strtok(realpath($composer->getInstallationManager()->getInstallPath($package)), "\r\n"));
 
                 return $exitCode;
             }
@@ -514,12 +509,7 @@ EOT
                             $packageViewData['description'] = $package->getDescription();
                         }
                         if ($writePath) {
-                            $path = $composer->getInstallationManager()->getInstallPath($package);
-                            if (is_string($path)) {
-                                $packageViewData['path'] = strtok(realpath($path), "\r\n");
-                            } else {
-                                $packageViewData['path'] = null;
-                            }
+                            $packageViewData['path'] = strtok(realpath($composer->getInstallationManager()->getInstallPath($package)), "\r\n");
                         }
 
                         $packageIsAbandoned = false;
@@ -645,7 +635,7 @@ EOT
     }
 
     /**
-     * @param array<array{name: string, direct-dependency?: bool, version?: string, latest?: string, latest-status?: string, description?: string|null, path?: string|null, source?: string|null, homepage?: string|null, warning?: string, abandoned?: bool|string}> $packages
+     * @param array<array{name: string, direct-dependency?: bool, version?: string, latest?: string, latest-status?: string, description?: string|null, path?: string, source?: string|null, homepage?: string|null, warning?: string, abandoned?: bool|string}> $packages
      */
     private function printPackages(IOInterface $io, array $packages, string $indent, bool $writeVersion, bool $writeLatest, bool $writeDescription, int $width, int $versionLength, int $nameLength, int $latestLength): void
     {
@@ -679,8 +669,8 @@ EOT
                 }
                 $io->write(' ' . $description, false);
             }
-            if (array_key_exists('path', $package)) {
-                $io->write(' '.(is_string($package['path']) ? $package['path'] : 'null'), false);
+            if (isset($package['path'])) {
+                $io->write(' ' . $package['path'], false);
             }
             $io->write('');
             if (isset($package['warning'])) {
@@ -812,12 +802,7 @@ EOT
         $io->write('<info>source</info>   : ' . sprintf('[%s] <comment>%s</comment> %s', $package->getSourceType(), $package->getSourceUrl(), $package->getSourceReference()));
         $io->write('<info>dist</info>     : ' . sprintf('[%s] <comment>%s</comment> %s', $package->getDistType(), $package->getDistUrl(), $package->getDistReference()));
         if ($installedRepo->hasPackage($package)) {
-            $path = $this->requireComposer()->getInstallationManager()->getInstallPath($package);
-            if (is_string($path)) {
-                $io->write('<info>path</info>     : ' . realpath($path));
-            } else {
-                $io->write('<info>path</info>     : null');
-            }
+            $io->write('<info>path</info>     : ' . sprintf('%s', realpath($this->requireComposer()->getInstallationManager()->getInstallPath($package))));
         }
         $io->write('<info>names</info>    : ' . implode(', ', $package->getNames()));
 
@@ -973,14 +958,9 @@ EOT
         }
 
         if ($installedRepo->hasPackage($package)) {
-            $path = $this->requireComposer()->getInstallationManager()->getInstallPath($package);
-            if (is_string($path)) {
-                $path = realpath($path);
-                if ($path !== false) {
-                    $json['path'] = $path;
-                }
-            } else {
-                $json['path'] = null;
+            $path = realpath($this->requireComposer()->getInstallationManager()->getInstallPath($package));
+            if ($path !== false) {
+                $json['path'] = $path;
             }
         }
 

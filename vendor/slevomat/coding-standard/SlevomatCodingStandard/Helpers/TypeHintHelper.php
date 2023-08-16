@@ -3,9 +3,9 @@
 namespace SlevomatCodingStandard\Helpers;
 
 use PHP_CodeSniffer\Files\File;
-use PHPStan\PhpDocParser\Ast\PhpDoc\TemplateTagValueNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\TypeAliasImportTagValueNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\TypeAliasTagValueNode;
+use SlevomatCodingStandard\Helpers\Annotation\TemplateAnnotation;
+use SlevomatCodingStandard\Helpers\Annotation\TypeAliasAnnotation;
+use SlevomatCodingStandard\Helpers\Annotation\TypeImportAnnotation;
 use function array_key_exists;
 use function array_map;
 use function array_merge;
@@ -93,7 +93,7 @@ class TypeHintHelper
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	public static function convertUnofficialUnionTypeHintToOfficialTypeHints(string $typeHint): array
 	{
@@ -127,7 +127,7 @@ class TypeHintHelper
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	public static function getSimpleTypeHints(): array
 	{
@@ -155,7 +155,7 @@ class TypeHintHelper
 	}
 
 	/**
-	 * @return list<string>
+	 * @return string[]
 	 */
 	public static function getSimpleIterableTypeHints(): array
 	{
@@ -201,7 +201,7 @@ class TypeHintHelper
 	}
 
 	/**
-	 * @param list<string> $traversableTypeHints
+	 * @param string[] $traversableTypeHints
 	 */
 	public static function isTraversableType(string $type, array $traversableTypeHints): bool
 	{
@@ -215,9 +215,9 @@ class TypeHintHelper
 		string $typeHintInAnnotation
 	): bool
 	{
-		/** @var list<string> $typeHintParts */
+		/** @var string[] $typeHintParts */
 		$typeHintParts = preg_split('~([&|])~', self::normalize($typeHint), -1, PREG_SPLIT_DELIM_CAPTURE);
-		/** @var list<string> $typeHintInAnnotationParts */
+		/** @var string[] $typeHintInAnnotationParts */
 		$typeHintInAnnotationParts = preg_split('~([&|])~', self::normalize($typeHintInAnnotation), -1, PREG_SPLIT_DELIM_CAPTURE);
 
 		if (count($typeHintParts) !== count($typeHintInAnnotationParts)) {
@@ -263,23 +263,26 @@ class TypeHintHelper
 		if ($templateAnnotationNames === null) {
 			foreach (['template', 'template-covariant'] as $annotationName) {
 				$templateAnnotationNames[] = sprintf('@%s', $annotationName);
-				foreach (AnnotationHelper::STATIC_ANALYSIS_PREFIXES as $prefixAnnotationName) {
+				foreach (AnnotationHelper::PREFIXES as $prefixAnnotationName) {
 					$templateAnnotationNames[] = sprintf('@%s-%s', $prefixAnnotationName, $annotationName);
 				}
 			}
 		}
 
 		$containsTypeHintInTemplateAnnotation = static function (int $docCommentOpenPointer) use ($phpcsFile, $templateAnnotationNames, $typeHint): bool {
+			$annotations = AnnotationHelper::getAnnotations($phpcsFile, $docCommentOpenPointer);
 			foreach ($templateAnnotationNames as $templateAnnotationName) {
-				/** @var list<Annotation<TemplateTagValueNode>> $annotations */
-				$annotations = AnnotationHelper::getAnnotations($phpcsFile, $docCommentOpenPointer, $templateAnnotationName);
+				if (!array_key_exists($templateAnnotationName, $annotations)) {
+					continue;
+				}
 
-				foreach ($annotations as $templateAnnotation) {
+				/** @var TemplateAnnotation $templateAnnotation */
+				foreach ($annotations[$templateAnnotationName] as $templateAnnotation) {
 					if ($templateAnnotation->isInvalid()) {
 						continue;
 					}
 
-					if ($templateAnnotation->getValue()->name === $typeHint) {
+					if ($templateAnnotation->getTemplateName() === $typeHint) {
 						return true;
 					}
 				}
@@ -320,7 +323,7 @@ class TypeHintHelper
 		static $aliasAnnotationNames = null;
 		if ($aliasAnnotationNames === null) {
 			foreach (['type', 'import-type'] as $annotationName) {
-				foreach (AnnotationHelper::STATIC_ANALYSIS_PREFIXES as $prefixAnnotationName) {
+				foreach (AnnotationHelper::PREFIXES as $prefixAnnotationName) {
 					$aliasAnnotationNames[] = sprintf('@%s-%s', $prefixAnnotationName, $annotationName);
 				}
 			}
@@ -337,25 +340,19 @@ class TypeHintHelper
 			return false;
 		}
 
+		$annotations = AnnotationHelper::getAnnotations($phpcsFile, $classDocCommentOpenPointer);
 		foreach ($aliasAnnotationNames as $aliasAnnotationName) {
-			$annotations = AnnotationHelper::getAnnotations($phpcsFile, $classDocCommentOpenPointer, $aliasAnnotationName);
+			if (!array_key_exists($aliasAnnotationName, $annotations)) {
+				continue;
+			}
 
-			foreach ($annotations as $aliasAnnotation) {
-				$aliasAnnotationValue = $aliasAnnotation->getValue();
-
-				if ($aliasAnnotationValue instanceof TypeAliasTagValueNode && $aliasAnnotationValue->alias === $typeHint) {
-					return true;
-				}
-
-				if (!($aliasAnnotationValue instanceof TypeAliasImportTagValueNode)) {
+			/** @var TypeAliasAnnotation|TypeImportAnnotation $aliasAnnotation */
+			foreach ($annotations[$aliasAnnotationName] as $aliasAnnotation) {
+				if ($aliasAnnotation->isInvalid()) {
 					continue;
 				}
 
-				if ($aliasAnnotationValue->importedAs === $typeHint) {
-					return true;
-				}
-
-				if ($aliasAnnotationValue->importedAlias === $typeHint) {
+				if ($aliasAnnotation->getAlias() === $typeHint) {
 					return true;
 				}
 			}
@@ -374,7 +371,7 @@ class TypeHintHelper
 			return 'never';
 		}
 
-		/** @var list<string> $parts */
+		/** @var string[] $parts */
 		$parts = preg_split('~([&|])~', $typeHint, -1, PREG_SPLIT_DELIM_CAPTURE);
 
 		$hints = [];

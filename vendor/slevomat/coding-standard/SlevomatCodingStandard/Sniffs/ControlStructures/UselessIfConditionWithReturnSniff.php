@@ -103,9 +103,8 @@ class UselessIfConditionWithReturnSniff implements Sniff
 			}
 
 			$phpcsFile->fixer->beginChangeset();
-
-			FixerHelper::change($phpcsFile, $ifPointer, $tokens[$elsePointer]['scope_closer'], sprintf('return %s;', $newCondition()));
-
+			$phpcsFile->fixer->replaceToken($ifPointer, sprintf('return %s;', $newCondition()));
+			FixerHelper::removeBetweenIncluding($phpcsFile, $ifPointer + 1, $tokens[$elsePointer]['scope_closer']);
 			$phpcsFile->fixer->endChangeset();
 		} else {
 			$returnPointer = TokenHelper::findNextEffective($phpcsFile, $tokens[$ifPointer]['scope_closer'] + 1);
@@ -135,9 +134,8 @@ class UselessIfConditionWithReturnSniff implements Sniff
 			}
 
 			$phpcsFile->fixer->beginChangeset();
-
-			FixerHelper::change($phpcsFile, $ifPointer, $semicolonPointer, sprintf('return %s;', $newCondition()));
-
+			$phpcsFile->fixer->replaceToken($ifPointer, sprintf('return %s;', $newCondition()));
+			FixerHelper::removeBetweenIncluding($phpcsFile, $ifPointer + 1, $semicolonPointer);
 			$phpcsFile->fixer->endChangeset();
 		}
 	}

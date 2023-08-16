@@ -53,7 +53,7 @@ class PropertyDeclarationSniff implements Sniff
 
 	public const CODE_MULTIPLE_SPACES_BETWEEN_MODIFIERS = 'MultipleSpacesBetweenModifiers';
 
-	/** @var list<string>|null */
+	/** @var string[]|null */
 	public $modifiersOrder = [];
 
 	/** @var bool */
@@ -193,7 +193,9 @@ class PropertyDeclarationSniff implements Sniff
 
 		$phpcsFile->fixer->beginChangeset();
 
-		FixerHelper::change($phpcsFile, $firstModifierPointer, $lastModifierPointer, $expectedModifiersFormatted);
+		$phpcsFile->fixer->replaceToken($firstModifierPointer, $expectedModifiersFormatted);
+
+		FixerHelper::removeBetweenIncluding($phpcsFile, $firstModifierPointer + 1, $lastModifierPointer);
 
 		$phpcsFile->fixer->endChangeset();
 	}
@@ -251,7 +253,9 @@ class PropertyDeclarationSniff implements Sniff
 
 		$phpcsFile->fixer->beginChangeset();
 
-		FixerHelper::change($phpcsFile, $firstModifierPointer, $lastModifierPointer, $expectedModifiersFormatted);
+		$phpcsFile->fixer->replaceToken($firstModifierPointer, $expectedModifiersFormatted);
+
+		FixerHelper::removeBetweenIncluding($phpcsFile, $firstModifierPointer + 1, $lastModifierPointer);
 
 		$phpcsFile->fixer->endChangeset();
 	}
@@ -382,7 +386,7 @@ class PropertyDeclarationSniff implements Sniff
 			foreach ($modifiersGroups as $modifiersGroupNo => $modifiersGroup) {
 				$this->normalizedModifiersOrder[$modifiersGroupNo] = [];
 
-				/** @var list<string> $modifiers */
+				/** @var string[] $modifiers */
 				$modifiers = preg_split('~\\s*,\\s*~', strtolower($modifiersGroup));
 
 				foreach ($modifiers as $modifier) {

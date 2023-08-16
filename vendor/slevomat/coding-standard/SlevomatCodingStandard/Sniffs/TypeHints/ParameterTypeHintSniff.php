@@ -4,10 +4,6 @@ namespace SlevomatCodingStandard\Sniffs\TypeHints;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
-use PHP_CodeSniffer\Util\Tokens;
-use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\TypelessParamTagValueNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\CallableTypeNode;
@@ -16,10 +12,10 @@ use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IntersectionTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\NullableTypeNode;
-use PHPStan\PhpDocParser\Ast\Type\ObjectShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ThisTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
-use SlevomatCodingStandard\Helpers\Annotation;
+use SlevomatCodingStandard\Helpers\Annotation\ParameterAnnotation;
+use SlevomatCodingStandard\Helpers\Annotation\VariableAnnotation;
 use SlevomatCodingStandard\Helpers\AnnotationHelper;
 use SlevomatCodingStandard\Helpers\AnnotationTypeHelper;
 use SlevomatCodingStandard\Helpers\DocCommentHelper;
@@ -45,13 +41,11 @@ use function lcfirst;
 use function sprintf;
 use function strtolower;
 use const T_BITWISE_AND;
-use const T_COMMA;
 use const T_DOC_COMMENT_CLOSE_TAG;
 use const T_DOC_COMMENT_OPEN_TAG;
 use const T_DOC_COMMENT_STAR;
 use const T_ELLIPSIS;
 use const T_FUNCTION;
-use const T_OPEN_PARENTHESIS;
 use const T_VARIABLE;
 
 class ParameterTypeHintSniff implements Sniff
@@ -84,7 +78,7 @@ class ParameterTypeHintSniff implements Sniff
 	/** @var bool|null */
 	public $enableStandaloneNullTrueFalseTypeHints = null;
 
-	/** @var list<string> */
+	/** @var string[] */
 	public $traversableTypeHints = [];
 
 	/** @var array<int, string>|null */
@@ -139,9 +133,9 @@ class ParameterTypeHintSniff implements Sniff
 	}
 
 	/**
-	 * @param array<string, TypeHint|null> $parametersTypeHints
-	 * @param array<string, Annotation<VarTagValueNode>|Annotation<ParamTagValueNode>|Annotation<TypelessParamTagValueNode>> $parametersAnnotations
-	 * @param array<string, Annotation<VarTagValueNode>|Annotation<ParamTagValueNode>> $prefixedParametersAnnotations
+	 * @param (TypeHint|null)[] $parametersTypeHints
+	 * @param array<string, ParameterAnnotation|VariableAnnotation> $parametersAnnotations
+	 * @param array<string, ParameterAnnotation|VariableAnnotation> $prefixedParametersAnnotations
 	 */
 	private function checkTypeHints(
 		File $phpcsFile,
@@ -165,34 +159,8 @@ class ParameterTypeHintSniff implements Sniff
 			})
 		);
 
-		$tokens = $phpcsFile->getTokens();
-
-		$isConstructor = FunctionHelper::isMethod($phpcsFile, $functionPointer)
-			&& strtolower(FunctionHelper::getName($phpcsFile, $functionPointer)) === '__construct';
-
 		foreach ($parametersWithoutTypeHint as $parameterName) {
-			$isPropertyPromotion = false;
-
-			if ($isConstructor) {
-				$parameterPointer = TokenHelper::findNextContent(
-					$phpcsFile,
-					T_VARIABLE,
-					$parameterName,
-					$tokens[$functionPointer]['parenthesis_opener'],
-					$tokens[$functionPointer]['parenthesis_closer']
-				);
-
-				$pointerBeforeParameter = TokenHelper::findPrevious($phpcsFile, [T_COMMA, T_OPEN_PARENTHESIS], $parameterPointer - 1);
-
-				$visibilityPointer = TokenHelper::findNextEffective($phpcsFile, $pointerBeforeParameter + 1);
-
-				$isPropertyPromotion = in_array($tokens[$visibilityPointer]['code'], Tokens::$scopeModifiers, true);
-			}
-
-			if (
-				!array_key_exists($parameterName, $parametersAnnotations)
-				|| $parametersAnnotations[$parameterName]->getValue() instanceof TypelessParamTagValueNode
-			) {
+			if (!array_key_exists($parameterName, $parametersAnnotations) || $parametersAnnotations[$parameterName]->getType() === null) {
 				if (array_key_exists($parameterName, $prefixedParametersAnnotations)) {
 					continue;
 				}
@@ -216,7 +184,7 @@ class ParameterTypeHintSniff implements Sniff
 				continue;
 			}
 
-			$parameterTypeNode = $parametersAnnotations[$parameterName]->getValue()->type;
+			$parameterTypeNode = $parametersAnnotations[$parameterName]->getType();
 
 			if (
 				$parameterTypeNode instanceof IdentifierTypeNode
@@ -238,7 +206,7 @@ class ParameterTypeHintSniff implements Sniff
 			$nullableParameterTypeHint = false;
 
 			if (AnnotationTypeHelper::containsOneType($parameterTypeNode)) {
-				/** @var ArrayTypeNode|ArrayShapeNode|ObjectShapeNode|IdentifierTypeNode|ThisTypeNode|GenericTypeNode|CallableTypeNode|ConstTypeNode $parameterTypeNode */
+				/** @var ArrayTypeNode|ArrayShapeNode|IdentifierTypeNode|ThisTypeNode|GenericTypeNode|CallableTypeNode|ConstTypeNode $parameterTypeNode */
 				$parameterTypeNode = $parameterTypeNode;
 				$typeHints[] = AnnotationTypeHelper::getTypeHintFromOneType(
 					$parameterTypeNode,
@@ -256,7 +224,7 @@ class ParameterTypeHintSniff implements Sniff
 						continue 2;
 					}
 
-					/** @var ArrayTypeNode|ArrayShapeNode|ObjectShapeNode|IdentifierTypeNode|ThisTypeNode|GenericTypeNode|CallableTypeNode|ConstTypeNode $typeNode */
+					/** @var ArrayTypeNode|ArrayShapeNode|IdentifierTypeNode|ThisTypeNode|GenericTypeNode|CallableTypeNode|ConstTypeNode $typeNode */
 					$typeNode = $typeNode;
 
 					$typeHint = AnnotationTypeHelper::getTypeHintFromOneType($typeNode, $canTryUnionTypeHint);
@@ -339,10 +307,6 @@ class ParameterTypeHintSniff implements Sniff
 					continue;
 				}
 
-				if ($isPropertyPromotion && $typeHint === 'callable') {
-					continue 2;
-				}
-
 				if (!TypeHintHelper::isValidTypeHint(
 					$typeHint,
 					$this->enableObjectTypeHint,
@@ -375,7 +339,7 @@ class ParameterTypeHintSniff implements Sniff
 					FunctionHelper::getTypeLabel($phpcsFile, $functionPointer),
 					FunctionHelper::getFullyQualifiedName($phpcsFile, $functionPointer),
 					$parameterName,
-					AnnotationTypeHelper::print($parameterTypeNode)
+					AnnotationTypeHelper::export($parameterTypeNode)
 				),
 				$functionPointer,
 				self::CODE_MISSING_NATIVE_TYPE_HINT
@@ -449,9 +413,9 @@ class ParameterTypeHintSniff implements Sniff
 	}
 
 	/**
-	 * @param array<string, TypeHint|null> $parametersTypeHints
-	 * @param array<string, Annotation<VarTagValueNode>|Annotation<ParamTagValueNode>|Annotation<TypelessParamTagValueNode>> $parametersAnnotations
-	 * @param array<string, Annotation<VarTagValueNode>|Annotation<ParamTagValueNode>> $prefixedParametersAnnotations
+	 * @param (TypeHint|null)[] $parametersTypeHints
+	 * @param array<string, ParameterAnnotation|VariableAnnotation> $parametersAnnotations
+	 * @param array<string, ParameterAnnotation|VariableAnnotation> $prefixedParametersAnnotations
 	 */
 	private function checkTraversableTypeHintSpecification(
 		File $phpcsFile,
@@ -481,9 +445,9 @@ class ParameterTypeHintSniff implements Sniff
 				$hasTraversableTypeHint = true;
 			} elseif (
 				array_key_exists($parameterName, $parametersAnnotations)
-				&& !$parametersAnnotations[$parameterName]->getValue() instanceof TypelessParamTagValueNode
+				&& $parametersAnnotations[$parameterName]->getType() !== null
 				&& AnnotationTypeHelper::containsTraversableType(
-					$parametersAnnotations[$parameterName]->getValue()->type,
+					$parametersAnnotations[$parameterName]->getType(),
 					$phpcsFile,
 					$functionPointer,
 					$this->getTraversableTypeHints()
@@ -515,11 +479,10 @@ class ParameterTypeHintSniff implements Sniff
 				continue;
 			}
 
-			if ($parametersAnnotations[$parameterName]->getValue() instanceof TypelessParamTagValueNode) {
+			$parameterTypeNode = $parametersAnnotations[$parameterName]->getType();
+			if ($parameterTypeNode === null) {
 				continue;
 			}
-
-			$parameterTypeNode = $parametersAnnotations[$parameterName]->getValue()->type;
 
 			if (
 				(
@@ -565,8 +528,8 @@ class ParameterTypeHintSniff implements Sniff
 	}
 
 	/**
-	 * @param array<string, TypeHint|null> $parametersTypeHints
-	 * @param array<string, Annotation> $parametersAnnotations
+	 * @param (TypeHint|null)[] $parametersTypeHints
+	 * @param array<string, ParameterAnnotation|VariableAnnotation> $parametersAnnotations
 	 */
 	private function checkUselessAnnotations(
 		File $phpcsFile,
@@ -585,8 +548,7 @@ class ParameterTypeHintSniff implements Sniff
 			}
 
 			$parameterAnnotation = $parametersAnnotations[$parameterName];
-
-			if ($parameterAnnotation->getValue() instanceof TypelessParamTagValueNode) {
+			if ($parameterAnnotation->getType() === null) {
 				continue;
 			}
 
@@ -623,7 +585,7 @@ class ParameterTypeHintSniff implements Sniff
 				continue;
 			}
 
-			$docCommentOpenPointer = $parameterAnnotation->getValue() instanceof VarTagValueNode
+			$docCommentOpenPointer = $parameterAnnotation instanceof VariableAnnotation
 				? TokenHelper::findPrevious($phpcsFile, T_DOC_COMMENT_OPEN_TAG, $parameterAnnotation->getStartPointer() - 1)
 				: DocCommentHelper::findDocCommentOpenPointer($phpcsFile, $functionPointer);
 
@@ -634,12 +596,12 @@ class ParameterTypeHintSniff implements Sniff
 				$docCommentOpenPointer
 			);
 
-			$changeStart = $starPointer ?? $parameterAnnotation->getStartPointer();
+			$changeStart = $starPointer ?? $docCommentOpenPointer + 1;
 			/** @var int $changeEnd */
 			$changeEnd = TokenHelper::findNext(
 				$phpcsFile,
 				[T_DOC_COMMENT_CLOSE_TAG, T_DOC_COMMENT_STAR],
-				$parameterAnnotation->getEndPointer()
+				$parameterAnnotation->getEndPointer() + 1
 			) - 1;
 
 			$phpcsFile->fixer->beginChangeset();
@@ -671,7 +633,7 @@ class ParameterTypeHintSniff implements Sniff
 	}
 
 	/**
-	 * @return list<string>
+	 * @return array<int, string>
 	 */
 	private function getTraversableTypeHints(): array
 	{

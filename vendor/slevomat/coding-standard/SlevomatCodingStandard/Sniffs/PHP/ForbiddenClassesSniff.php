@@ -49,7 +49,7 @@ class ForbiddenClassesSniff implements Sniff
 	/** @var array<string, (string|null)> */
 	public $forbiddenTraits = [];
 
-	/** @var list<string> */
+	/** @var array<string> */
 	private static $keywordReferences = ['self', 'parent', 'static'];
 
 	/**
@@ -138,7 +138,7 @@ class ForbiddenClassesSniff implements Sniff
 	}
 
 	/**
-	 * @param list<array{fullyQualifiedName: string, startPointer: int|null, endPointer: int|null}> $references
+	 * @param array{fullyQualifiedName: string, startPointer: int|null, endPointer: int|null}[] $references
 	 * @param array<string, (string|null)> $forbiddenNames
 	 */
 	private function checkReferences(
@@ -199,9 +199,8 @@ class ForbiddenClassesSniff implements Sniff
 				}
 
 				$phpcsFile->fixer->beginChangeset();
-
-				FixerHelper::change($phpcsFile, $reference['startPointer'], $reference['endPointer'], $alternative);
-
+				$phpcsFile->fixer->replaceToken($reference['startPointer'], $alternative);
+				FixerHelper::removeBetweenIncluding($phpcsFile, $reference['startPointer'] + 1, $reference['endPointer']);
 				$phpcsFile->fixer->endChangeset();
 			}
 		}
@@ -216,7 +215,7 @@ class ForbiddenClassesSniff implements Sniff
 	}
 
 	/**
-	 * @return list<array{fullyQualifiedName: string, startPointer: int|null, endPointer: int|null}>
+	 * @return array{fullyQualifiedName: string, startPointer: int|null, endPointer: int|null}[]
 	 */
 	private function getAllReferences(File $phpcsFile, int $startPointer, int $endPointer): array
 	{

@@ -49,8 +49,8 @@ class DisallowImplicitArrayCreationSniff implements Sniff
 	{
 		$tokens = $phpcsFile->getTokens();
 
-		$assignmentPointer = TokenHelper::findNextEffective($phpcsFile, $tokens[$bracketOpenerPointer]['bracket_closer'] + 1);
-		if ($tokens[$assignmentPointer]['code'] !== T_EQUAL) {
+		$assigmentPointer = TokenHelper::findNextEffective($phpcsFile, $tokens[$bracketOpenerPointer]['bracket_closer'] + 1);
+		if ($tokens[$assigmentPointer]['code'] !== T_EQUAL) {
 			return;
 		}
 
@@ -182,8 +182,8 @@ class DisallowImplicitArrayCreationSniff implements Sniff
 				continue;
 			}
 
-			$assignmentPointer = TokenHelper::findNextEffective($phpcsFile, $i + 1);
-			if ($tokens[$assignmentPointer]['code'] === T_EQUAL) {
+			$assigmentPointer = TokenHelper::findNextEffective($phpcsFile, $i + 1);
+			if ($tokens[$assigmentPointer]['code'] === T_EQUAL) {
 				return true;
 			}
 

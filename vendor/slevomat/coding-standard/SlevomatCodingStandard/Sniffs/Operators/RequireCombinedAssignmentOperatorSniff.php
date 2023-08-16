@@ -36,7 +36,7 @@ use const T_STRING_CONCAT;
 class RequireCombinedAssignmentOperatorSniff implements Sniff
 {
 
-	public const CODE_REQUIRED_COMBINED_ASSIGNMENT_OPERATOR = 'RequiredCombinedAssignmentOperator';
+	public const CODE_REQUIRED_COMBINED_ASSIGMENT_OPERATOR = 'RequiredCombinedAssigmentOperator';
 
 	/**
 	 * @return array<int, (int|string)>
@@ -128,21 +128,20 @@ class RequireCombinedAssignmentOperatorSniff implements Sniff
 		);
 
 		if (!$isFixable) {
-			$phpcsFile->addError($errorMessage, $equalPointer, self::CODE_REQUIRED_COMBINED_ASSIGNMENT_OPERATOR);
+			$phpcsFile->addError($errorMessage, $equalPointer, self::CODE_REQUIRED_COMBINED_ASSIGMENT_OPERATOR);
 
 			return;
 		}
 
-		$fix = $phpcsFile->addFixableError($errorMessage, $equalPointer, self::CODE_REQUIRED_COMBINED_ASSIGNMENT_OPERATOR);
+		$fix = $phpcsFile->addFixableError($errorMessage, $equalPointer, self::CODE_REQUIRED_COMBINED_ASSIGMENT_OPERATOR);
 
 		if (!$fix) {
 			return;
 		}
 
 		$phpcsFile->fixer->beginChangeset();
-
-		FixerHelper::change($phpcsFile, $equalPointer, $operatorPointer, $operators[$tokens[$operatorPointer]['code']]);
-
+		$phpcsFile->fixer->replaceToken($equalPointer, $operators[$tokens[$operatorPointer]['code']]);
+		FixerHelper::removeBetweenIncluding($phpcsFile, $equalPointer + 1, $operatorPointer);
 		$phpcsFile->fixer->endChangeset();
 	}
 

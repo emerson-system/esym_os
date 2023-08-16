@@ -632,7 +632,9 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
      */
     public function hasField(string $field): bool
     {
-        return $this->getSchema()->getColumn($field) !== null;
+        $schema = $this->getSchema();
+
+        return $schema->getColumn($field) !== null;
     }
 
     /**
@@ -1046,7 +1048,10 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
     {
         $options += ['sourceTable' => $this];
 
-        return $this->_associations->load(BelongsTo::class, $associated, $options);
+        /** @var \Cake\ORM\Association\BelongsTo $association */
+        $association = $this->_associations->load(BelongsTo::class, $associated, $options);
+
+        return $association;
     }
 
     /**
@@ -1089,7 +1094,10 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
     {
         $options += ['sourceTable' => $this];
 
-        return $this->_associations->load(HasOne::class, $associated, $options);
+        /** @var \Cake\ORM\Association\HasOne $association */
+        $association = $this->_associations->load(HasOne::class, $associated, $options);
+
+        return $association;
     }
 
     /**
@@ -1138,7 +1146,10 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
     {
         $options += ['sourceTable' => $this];
 
-        return $this->_associations->load(HasMany::class, $associated, $options);
+        /** @var \Cake\ORM\Association\HasMany $association */
+        $association = $this->_associations->load(HasMany::class, $associated, $options);
+
+        return $association;
     }
 
     /**
@@ -1189,7 +1200,10 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
     {
         $options += ['sourceTable' => $this];
 
-        return $this->_associations->load(BelongsToMany::class, $associated, $options);
+        /** @var \Cake\ORM\Association\BelongsToMany $association */
+        $association = $this->_associations->load(BelongsToMany::class, $associated, $options);
+
+        return $association;
     }
 
     /**
@@ -2768,8 +2782,9 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
     public function newEntity(array $data, array $options = []): EntityInterface
     {
         $options['associated'] = $options['associated'] ?? $this->_associations->keys();
+        $marshaller = $this->marshaller();
 
-        return $this->marshaller()->one($data, $options);
+        return $marshaller->one($data, $options);
     }
 
     /**
@@ -2807,8 +2822,9 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
     public function newEntities(array $data, array $options = []): array
     {
         $options['associated'] = $options['associated'] ?? $this->_associations->keys();
+        $marshaller = $this->marshaller();
 
-        return $this->marshaller()->many($data, $options);
+        return $marshaller->many($data, $options);
     }
 
     /**
@@ -2865,8 +2881,9 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
     public function patchEntity(EntityInterface $entity, array $data, array $options = []): EntityInterface
     {
         $options['associated'] = $options['associated'] ?? $this->_associations->keys();
+        $marshaller = $this->marshaller();
 
-        return $this->marshaller()->merge($entity, $data, $options);
+        return $marshaller->merge($entity, $data, $options);
     }
 
     /**
@@ -2903,8 +2920,9 @@ class Table implements RepositoryInterface, EventListenerInterface, EventDispatc
     public function patchEntities(iterable $entities, array $data, array $options = []): array
     {
         $options['associated'] = $options['associated'] ?? $this->_associations->keys();
+        $marshaller = $this->marshaller();
 
-        return $this->marshaller()->mergeMany($entities, $data, $options);
+        return $marshaller->mergeMany($entities, $data, $options);
     }
 
     /**

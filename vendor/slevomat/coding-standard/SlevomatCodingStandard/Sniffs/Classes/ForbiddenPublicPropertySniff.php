@@ -65,7 +65,7 @@ final class ForbiddenPublicPropertySniff implements Sniff
 
 	/**
 	 * @phpcsSuppress SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint.DisallowedMixedTypeHint
-	 * @return array{code: int|string}
+	 * @return mixed[]
 	 */
 	private function getPropertyScopeModifier(File $file, int $position): array
 	{

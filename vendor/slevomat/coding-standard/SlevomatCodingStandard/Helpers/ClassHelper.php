@@ -82,7 +82,7 @@ class ClassHelper
 	}
 
 	/**
-	 * @return list<int>
+	 * @return int[]
 	 */
 	public static function getTraitUsePointers(File $phpcsFile, int $classPointer): array
 	{
@@ -107,7 +107,7 @@ class ClassHelper
 	}
 
 	/**
-	 * @return list<int>
+	 * @return array<int>
 	 */
 	private static function getAllClassPointers(File $phpcsFile): array
 	{

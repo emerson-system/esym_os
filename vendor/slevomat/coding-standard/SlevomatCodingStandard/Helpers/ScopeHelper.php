@@ -51,7 +51,7 @@ class ScopeHelper
 	}
 
 	/**
-	 * @return list<int>
+	 * @return int[]
 	 */
 	public static function getAllRootPointers(File $phpcsFile): array
 	{

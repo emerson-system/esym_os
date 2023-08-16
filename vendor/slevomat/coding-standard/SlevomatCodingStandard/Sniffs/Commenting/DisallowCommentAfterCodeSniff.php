@@ -42,24 +42,13 @@ class DisallowCommentAfterCodeSniff implements Sniff
 	 */
 	public function process(File $phpcsFile, $commentPointer): void
 	{
-		$tokens = $phpcsFile->getTokens();
-
-		if ($tokens[$commentPointer]['column'] === 1) {
-			return;
-		}
-
 		$firstNonWhitespacePointerOnLine = TokenHelper::findFirstNonWhitespaceOnLine($phpcsFile, $commentPointer);
 
 		if ($firstNonWhitespacePointerOnLine === $commentPointer) {
 			return;
 		}
 
-		if (
-			$tokens[$firstNonWhitespacePointerOnLine]['code'] === T_DOC_COMMENT_OPEN_TAG
-			&& $tokens[$firstNonWhitespacePointerOnLine]['comment_closer'] > $commentPointer
-		) {
-			return;
-		}
+		$tokens = $phpcsFile->getTokens();
 
 		$commentEndPointer = CommentHelper::getCommentEndPointer($phpcsFile, $commentPointer);
 		$nextNonWhitespacePointer = TokenHelper::findNextNonWhitespace($phpcsFile, $commentEndPointer + 1);
