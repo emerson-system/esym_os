@@ -52,15 +52,22 @@ class User extends Entity
         'password',
     ];
 
-    
-    // ... Outros métodos
-
-    // Faça o hash das senhas automaticamente quando elas forem alteradas.
-
-    protected function _setPassword(string $password)
+    protected function _setPassword($password)
     {
-        $hasher = new DefaultPasswordHasher();
-        return $hasher->hash($password);
+        if (strlen($password) > 0){
+           return (new DefaultPasswordHasher)->hash($password);
+        } 
     }
-    
+
+    protected function _getStatusTexto()
+    {
+        switch($this->status){
+            case 1:
+                    return 'Ativo';
+            case 2:
+                    return 'Inativo';
+            default:
+                    return 'Não Informado';
+        }
+    }
 }

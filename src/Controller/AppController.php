@@ -41,8 +41,6 @@ class AppController extends Controller
     {
         parent::initialize();
 
-        $this->loadComponent('Authentication.Authentication');
-
         $this->loadComponent('RequestHandler');
         $this->loadComponent('Flash');
         $this->loadComponent('Auth', [
@@ -50,11 +48,11 @@ class AppController extends Controller
                 'controller' => 'welcome',
                 'action' => 'index'
             ],
-            'logoutRedirect' => [
-                'controller' => 'Users',
-                'action' => 'login'
+            'logoutRedirect'=>[
+            'controller'=>'users',
+            'action'=>'login'
             ]
-        ]); 
+        ]);
 
         /*
          * Enable the following component for recommended CakePHP form protection settings.
@@ -62,4 +60,17 @@ class AppController extends Controller
          */
         //$this->loadComponent('FormProtection');
     }
+
+    // public function beforeRender(Event $event){
+    //     $prefix = null;
+    //     if($this->request->getParam(['prefix']) !== null){
+    //         $prefix = $this->request->getParam(['prefix']);
+    //     }
+
+    //     if($prefix == 'admin'){
+    //         if(($this->request->getParam(['action'] !== null)) AND ($this->request->getParam(['action'] == 'login'))){
+    //             $this->viewBuilder()->setLayout('login');
+    //         }
+    //     }
+    // }
 }
