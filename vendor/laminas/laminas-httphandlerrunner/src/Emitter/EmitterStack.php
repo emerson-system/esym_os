@@ -53,7 +53,6 @@ class EmitterStack extends SplStack implements EmitterInterface
     #[ReturnTypeWillChange]
     public function offsetSet($index, $emitter)
     {
-        /** @psalm-suppress RedundantConditionGivenDocblockType */
         $this->validateEmitter($emitter);
         parent::offsetSet($index, $emitter);
     }
@@ -68,7 +67,6 @@ class EmitterStack extends SplStack implements EmitterInterface
     #[ReturnTypeWillChange]
     public function push($emitter)
     {
-        /** @psalm-suppress RedundantConditionGivenDocblockType */
         $this->validateEmitter($emitter);
         parent::push($emitter);
     }
@@ -83,7 +81,6 @@ class EmitterStack extends SplStack implements EmitterInterface
     #[ReturnTypeWillChange]
     public function unshift($emitter)
     {
-        /** @psalm-suppress RedundantConditionGivenDocblockType */
         $this->validateEmitter($emitter);
         parent::unshift($emitter);
     }
@@ -91,11 +88,10 @@ class EmitterStack extends SplStack implements EmitterInterface
     /**
      * Validate that an emitter implements EmitterInterface.
      *
-     * @param mixed $emitter
      * @throws Exception\InvalidEmitterException For non-emitter instances.
      * @psalm-assert EmitterInterface $emitter
      */
-    private function validateEmitter($emitter): void
+    private function validateEmitter(mixed $emitter): void
     {
         if (! $emitter instanceof EmitterInterface) {
             throw Exception\InvalidEmitterException::forEmitter($emitter);
