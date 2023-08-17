@@ -20,7 +20,6 @@
                     echo $this->Form->control('nome');
                     echo $this->Form->control('login');
                     echo $this->Form->control('email');
-                    echo $this->Form->control('status');
                     echo $this->Form->control('cpf');
                     echo $this->Form->control('password');
                     echo $this->Form->control('matricula');

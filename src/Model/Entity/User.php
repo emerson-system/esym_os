@@ -53,9 +53,23 @@ class User extends Entity
     ];
 
     protected function _setPassword($password)
+
     {
         if (strlen($password) > 0){
            return (new DefaultPasswordHasher)->hash($password);
         } 
+    }
+
+    protected function _getStatusTexto()
+    {
+        switch($this->status){
+            case 1:
+                    return 'Ativo';
+            case 2:
+                    return 'Inativo';
+            default:
+                    return 'Não Informado';
+        }
+
     }
 }
