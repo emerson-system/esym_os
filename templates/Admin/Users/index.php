@@ -8,6 +8,7 @@
     <?= $this->Html->link(__('Novo Usuário'), ['action' => 'adicionar'], ['class' => 'button float-right']) ?>
     <?= $this->Html->link(__('Home'), ['controller' => 'welcome','action' => 'index'], ['class' => 'button float-left']) ?><br><br>
     <h3><?= __('Users') ?></h3>
+
     <div class="table-responsive column-60">
         <table>
             <thead>
@@ -19,17 +20,20 @@
                     <th><?= $this->Paginator->sort('cpf') ?></th>
                     <th><?= $this->Paginator->sort('criado') ?></th>
                     <th><?= $this->Paginator->sort('alterado') ?></th>
+
                     <th class="actions"><?= __('Actions') ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($users as $user): ?>
                 <tr>
+
                     <td><?= $this->Number->format($user->matricula) ?></td>
                     <td><?= h($user->nome) ?></td>
                     <td><?= h($user->email) ?></td>
                     <td><?= h($user->statusTexto) ?></td>
                     <td><?= h($user->cpf) ?></td>
+
                     <td><?= h($user->created) ?></td>
                     <td><?= h($user->modified) ?></td>
                     <td class="actions">
